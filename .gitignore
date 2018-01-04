@@ -1,0 +1,12 @@
+# Go build artifacts
+/bin/
+*.test
+*.out
+
+# Node / TypeScript
+viewer/node_modules/
+viewer/dist/
+
+# Editor noise
+.DS_Store
+*.swp
