@@ -444,4 +444,4 @@ to code, tests and a docs section you can read today.
 MIT — see [LICENSE](LICENSE). Built as a seismic fault laboratory for API
 evolution. Change the ground carefully; someone lives downhill.
 
-<!-- draft note 102 -->
+<!-- draft note 107 -->
