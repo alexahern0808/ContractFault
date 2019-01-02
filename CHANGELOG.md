@@ -21,3 +21,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Stabilized the report schema at `contractfault/v1` for 1.x.
+
+## [0.8.0] - 2025-11-18
+
+### Changed
