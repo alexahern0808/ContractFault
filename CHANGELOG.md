@@ -9,3 +9,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - (planned) monorepo mode: multi-service contracts in a single combined report.
+- (planned) OpenAPI import shim for existing documents.
+
+## [1.0.0] - 2026-08-09
+
+### Added
+
