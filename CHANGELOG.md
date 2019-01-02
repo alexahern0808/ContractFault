@@ -32,3 +32,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Text renderer magnitude meter bounded and stable across terminals.
 
 ### Fixed
+
+- Consumer manifests with unknown keys now fail loudly instead of silently
+  disarming the blast-radius join.
+
+## [0.7.0] - 2024-11-14
+
