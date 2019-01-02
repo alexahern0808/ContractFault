@@ -15,3 +15,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `-fail-on-behavioral` pipeline flag: treat behavioral-only shifts as a hard
+  failure (exit 2) when the SLA demands it.
+- `-quiet` mode printing only the one-line verdict summary.
+
+### Changed
+
