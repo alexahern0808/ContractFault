@@ -26,3 +26,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [0.8.0] - 2025-11-18
 
 ### Changed
+
+- Determinism hardening: every collection sorted before emission; identical
+  inputs now produce byte-identical JSON reports (verified in tests).
+- Text renderer magnitude meter bounded and stable across terminals.
+
+### Fixed
