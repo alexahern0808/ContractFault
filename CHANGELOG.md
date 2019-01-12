@@ -38,3 +38,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.7.0] - 2024-11-14
 
+### Added
+
+- TypeScript seismic viewer: colorized terminal impact map and a standalone
+  animated SVG seismograph rendered from the JSON report.
+- Viewer exit codes mirror the Go CLI (0/1/2) so it can double as a CI gate.
+
