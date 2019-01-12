@@ -44,3 +44,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   animated SVG seismograph rendered from the JSON report.
 - Viewer exit codes mirror the Go CLI (0/1/2) so it can double as a CI gate.
 
+## [0.6.0] - 2023-09-21
+
+### Added
+
+- Seismic magnitude scoring on a compressed 0-10 scale with plain-language
+  verdicts (`stable`, `tremor`, `shaken`, `rupture`).
