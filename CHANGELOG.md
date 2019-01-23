@@ -50,3 +50,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Seismic magnitude scoring on a compressed 0-10 scale with plain-language
   verdicts (`stable`, `tremor`, `shaken`, `rupture`).
+- CI exit-code mapping: 0 stable, 1 shaken (behavioral), 2 rupture (breaking),
+  3 usage/IO error.
+
+## [0.5.0] - 2022-10-12
+
+### Added
