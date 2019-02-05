@@ -67,3 +67,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.4.0] - 2021-12-09
 
+### Added
+
+- Full classification engine across endpoints, parameters, responses, reusable
+  types, fields, enums, nullability, arity, required-ness, deprecation and
+  idempotency - each mapped to breaking / additive / behavioral.
+- Thirty-plus documented rule codes in `docs/CONTRACT.md`.
