@@ -61,3 +61,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   that actually depend on the affected element, weighted by criticality.
 
 ### Changed
+
+- Field tremors join on `readsFields`/`writesFields`; endpoint tremors join on
+  callers; new required parameters shake every caller of the endpoint.
+
+## [0.4.0] - 2021-12-09
+
