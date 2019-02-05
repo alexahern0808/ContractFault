@@ -56,3 +56,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [0.5.0] - 2022-10-12
 
 ### Added
+
+- Consumer blast-radius join: every change attributed to the named consumers
+  that actually depend on the affected element, weighted by criticality.
+
+### Changed
