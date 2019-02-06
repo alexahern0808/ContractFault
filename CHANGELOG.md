@@ -73,3 +73,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   types, fields, enums, nullability, arity, required-ness, deprecation and
   idempotency - each mapped to breaking / additive / behavioral.
 - Thirty-plus documented rule codes in `docs/CONTRACT.md`.
+
+## [0.3.0] - 2020-11-05
+
+### Added
+
+- Consumer usage manifests with criticality weighting (`high`/`medium`/`low`).
