@@ -79,3 +79,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - Consumer usage manifests with criticality weighting (`high`/`medium`/`low`).
+- Manifest format kept coarse enough to publish without exposing the source
+  tree, precise enough to compute a real blast radius.
+
+## [0.2.0] - 2019-08-22
+
+### Changed
