@@ -85,3 +85,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [0.2.0] - 2019-08-22
 
 ### Changed
+
+- Strict decoding everywhere: unknown keys are hard errors so typos fail
+  loudly instead of silently disarming a check.
+
+### Fixed
+
