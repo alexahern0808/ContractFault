@@ -91,3 +91,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Endpoint correlation now keyed on a stable `id` - renaming a path is
+  reported as a mutation, not a delete-plus-add.
+
+## [0.1.0] - 2018-04-19
+
+### Added
