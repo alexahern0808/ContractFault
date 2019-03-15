@@ -4,3 +4,7 @@
 # TypeScript seismic viewer. Targets are deliberately small and composable so
 # CI and humans run the same commands.
 
+GO        ?= go
+NPM       ?= npm
+BIN       ?= bin/contractfault
+VIEWER    ?= viewer
