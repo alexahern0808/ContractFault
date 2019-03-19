@@ -12,3 +12,6 @@ EXAMPLES  ?= examples
 OLD       ?= $(EXAMPLES)/contracts/orders-v1.json
 NEW       ?= $(EXAMPLES)/contracts/orders-v2.json
 CONSUMERS ?= $(EXAMPLES)/consumers/*.json
+REPORT    ?= $(EXAMPLES)/report.json
+
+.PHONY: all build build-go build-viewer test test-go test-viewer \
