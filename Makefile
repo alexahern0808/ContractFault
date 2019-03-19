@@ -19,3 +19,7 @@ REPORT    ?= $(EXAMPLES)/report.json
 
 all: build test
 
+## build: compile the Go CLI and the TypeScript viewer.
+build: build-go build-viewer
+
+build-go:
