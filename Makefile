@@ -15,3 +15,7 @@ CONSUMERS ?= $(EXAMPLES)/consumers/*.json
 REPORT    ?= $(EXAMPLES)/report.json
 
 .PHONY: all build build-go build-viewer test test-go test-viewer \
+        report demo svg fmt vet clean tidy ci
+
+all: build test
+
