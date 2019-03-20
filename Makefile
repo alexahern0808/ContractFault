@@ -23,3 +23,7 @@ all: build test
 build: build-go build-viewer
 
 build-go:
+	$(GO) build -o $(BIN) ./cmd/contractfault
+
+build-viewer:
+	cd $(VIEWER) && $(NPM) install --no-audit --no-fund && $(NPM) run build
