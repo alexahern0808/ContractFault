@@ -50,3 +50,6 @@ svg: build-viewer report
 	cd $(VIEWER) && node dist/cli.js ../$(REPORT) --svg ../docs/assets/impact-seismograph.svg --no-color
 
 fmt:
+	$(GO) fmt ./...
+
+vet:
