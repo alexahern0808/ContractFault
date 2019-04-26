@@ -55,3 +55,15 @@ That sentence is worth more than any diff.
                   ╭─────────────────  classify  ─────────────────╮
                   │  breaking · additive · behavioral            │
                   ╰───────────────────┬──────────────────────────╯
+                                      │  join
+                       ┌──────────────┼───────────────┐
+                       ▼              ▼               ▼
+                 checkout-web   analytics-etl   receipts-mailer   … named consumers
+```
+
+---
+
+## The laboratory at a glance
+
+```
+contractfault/
