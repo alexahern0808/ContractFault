@@ -42,3 +42,16 @@ That framing is not decoration. It is the actual data model. contractfault
 refuses to tell you "47 things changed." It tells you *"`checkout-web` (high
 criticality) will rupture because `Order.couponCode` — which it reads — was
 removed, and `cancelOrder` — which it calls — changed from POST to DELETE."*
+That sentence is worth more than any diff.
+
+```
+                    v1.4.0  ──────────────────────────  v2.0.0
+                       │                                    │
+        ┌──────────────┴───────────┐          ┌─────────────┴──────────────┐
+        │  endpoints · types        │  DIFF   │  endpoints · types          │
+        └──────────────┬───────────┘   ═══>   └─────────────┬──────────────┘
+                       │                                    │
+                       ▼                                    ▼
+                  ╭─────────────────  classify  ─────────────────╮
+                  │  breaking · additive · behavioral            │
+                  ╰───────────────────┬──────────────────────────╯
