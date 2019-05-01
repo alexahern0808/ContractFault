@@ -80,3 +80,15 @@ contractfault/
 │   └── test/viewer.test.ts
 ├── examples/
 │   ├── contracts/orders-v{1,2}.json    # before / after
+│   ├── consumers/*.json                # four named consumers
+│   └── report.json                     # a generated report fixture
+├── docs/
+│   ├── CONTRACT.md           # the format spec + full classification table
+│   └── assets/               # animated faultline-hero + impact-seismograph SVGs
+├── go.mod · Makefile · LICENSE · CHANGELOG.md · .github/workflows/ci.yml
+```
+
+Two languages, one contract. The Go analyzer is the instrument; the TypeScript
+viewer is the paper the trace is drawn on. They meet at a single JSON schema
+(`contractfault/v1`), so either half can be replaced without touching the other.
+
