@@ -67,3 +67,16 @@ That sentence is worth more than any diff.
 
 ```
 contractfault/
+├── cmd/contractfault/        # Go stdlib CLI — the seismograph
+│   └── main.go               #   flag parsing, glob expansion, pipeline, exit codes
+├── internal/
+│   ├── contract/             # the documented JSON contract format + strict loader
+│   ├── consumer/             # consumer usage manifests + criticality weighting
+│   ├── analyze/              # the classification engine (the fault mechanics)
+│   ├── impact/               # change→consumer join, magnitude, verdict
+│   └── report/               # deterministic JSON + text seismograph renderers
+├── viewer/                   # TypeScript seismic impact map / SVG viewer
+│   ├── src/{types,seismic,cli}.ts
+│   └── test/viewer.test.ts
+├── examples/
+│   ├── contracts/orders-v{1,2}.json    # before / after
