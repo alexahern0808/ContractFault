@@ -130,3 +130,16 @@ magnitude 8.5  verdict RUPTURE
 [##################################------]
 breaking=8  additive=5  behavioral=2  affected-consumers=4
 
+CHANGES (sorted by severity)
+  !! [critical] cancelOrder                  method changed POST -> DELETE
+      code: endpoint.method.changed
+      hits: checkout-web
+      fix : Update the HTTP verb from POST to DELETE.
+  !! [critical] getReceipt                   endpoint GET /orders/{id}/receipt (getReceipt) was removed
+      code: endpoint.removed
+      hits: analytics-etl, receipts-mailer
+      fix : Stop calling this endpoint; migrate to a replacement operation before upgrading.
+  ~~ [major   ] cancelOrder                  idempotency changed true -> false
+      code: endpoint.idempotency.changed
+      hits: checkout-web
+      fix : Review retry logic: repeated calls may no longer be safe.
