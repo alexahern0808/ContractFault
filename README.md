@@ -117,3 +117,16 @@ interface. Everything else has a sensible default.
 
 ---
 
+## The terminal seismograph (real output)
+
+Running the analyzer against the bundled `orders-api` fault produces this. It is
+copied verbatim from an actual run — no artistic license:
+
+```text
+contractfault seismic report
+service : orders-api
+shift   : 1.4.0 -> 2.0.0
+magnitude 8.5  verdict RUPTURE
+[##################################------]
+breaking=8  additive=5  behavioral=2  affected-consumers=4
+
