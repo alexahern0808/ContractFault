@@ -92,3 +92,16 @@ Two languages, one contract. The Go analyzer is the instrument; the TypeScript
 viewer is the paper the trace is drawn on. They meet at a single JSON schema
 (`contractfault/v1`), so either half can be replaced without touching the other.
 
+---
+
+## Quick start — trigger your first quake
+
+You need Go 1.24+ and Node 20+.
+
+```bash
+# 1. Build both halves
+make build
+
+# 2. Run the analyzer over the shipped example fault
+./bin/contractfault \
+    -old examples/contracts/orders-v1.json \
