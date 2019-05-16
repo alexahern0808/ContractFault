@@ -143,3 +143,15 @@ CHANGES (sorted by severity)
       code: endpoint.idempotency.changed
       hits: checkout-web
       fix : Review retry logic: repeated calls may no longer be safe.
+  !! [major   ] cancelOrder                  path changed /orders/{id}/cancel -> /orders/{id}
+      code: endpoint.path.changed
+      hits: checkout-web
+      fix : Update the request URL template to /orders/{id}.
+  !! [major   ] Order.couponCode             field Order.couponCode removed
+      code: field.removed
+      hits: analytics-etl, checkout-web
+      fix : Stop reading Order.couponCode; it is no longer present.
+  !! [major   ] listOrders#query:limit       parameter query:limit became required
+      code: param.required.added
+      hits: analytics-etl, fulfillment-worker
+      fix : Always supply limit; requests without it will be rejected.
