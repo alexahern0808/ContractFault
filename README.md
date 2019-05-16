@@ -105,3 +105,15 @@ make build
 # 2. Run the analyzer over the shipped example fault
 ./bin/contractfault \
     -old examples/contracts/orders-v1.json \
+    -new examples/contracts/orders-v2.json \
+    -consumers "examples/consumers/*.json"
+
+# 3. Or run the whole pipeline — analyze, then render the seismic map + SVG
+make demo
+```
+
+No flags to memorize: `-old`, `-new`, and a `-consumers` glob are the whole
+interface. Everything else has a sensible default.
+
+---
+
