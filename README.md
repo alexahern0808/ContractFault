@@ -168,3 +168,15 @@ CHANGES (sorted by severity)
 
 CONSUMER BLAST RADIUS
   checkout-web       high    score=35.3  breaking=3 additive=1 behavioral=1
+  analytics-etl      medium  score=18.5  breaking=3 additive=1 behavioral=0
+  fulfillment-worker high    score=8.3  breaking=1 additive=1 behavioral=0
+  receipts-mailer    low     score=4.3  breaking=1 additive=1 behavioral=0
+```
+
+(The listing above is trimmed to the highest-severity tremors; the tool prints
+all fifteen. The `##...` bar is the magnitude meter on a 0–10 scale.)
+
+Read it top-down like a seismologist reads a drum: the biggest tremors are at
+the top, each annotated with **who feels it** (`hits:`) and **how to survive it**
+(`fix:`). The blast-radius footer ranks the towns by how hard they were shaken.
+
