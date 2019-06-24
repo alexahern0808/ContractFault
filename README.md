@@ -193,3 +193,16 @@ with its risk score, and its color encodes the worst tremor it felt.
 ./bin/contractfault -old examples/contracts/orders-v1.json \
     -new examples/contracts/orders-v2.json \
     -consumers "examples/consumers/*.json" \
+    -format json -out examples/report.json
+
+cd viewer
+node dist/cli.js ../examples/report.json --svg ../docs/assets/impact-seismograph.svg
+```
+
+<div align="center">
+<img src="docs/assets/impact-seismograph.svg" alt="impact seismograph" width="80%" />
+</div>
+
+The viewer also renders a colorized terminal map with per-consumer amplitude
+bars, and — like the Go CLI — exits `2` on breaking, `1` on behavioral, `0` on
+stable, so it can double as a CI gate when reading a stored report.
