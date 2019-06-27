@@ -206,3 +206,15 @@ node dist/cli.js ../examples/report.json --svg ../docs/assets/impact-seismograph
 The viewer also renders a colorized terminal map with per-consumer amplitude
 bars, and — like the Go CLI — exits `2` on breaking, `1` on behavioral, `0` on
 stable, so it can double as a CI gate when reading a stored report.
+
+---
+
+## What counts as a tremor
+
+contractfault classifies every difference into one of three categories, and each
+category maps to a CI outcome. This is the crux of *not* being a text diff: the
+tool understands the **semantics** of a contract, not its bytes.
+
+| Category       | Feels like      | Examples                                              | CI |
+|----------------|-----------------|-------------------------------------------------------|----|
+| **breaking**   | the ground cracks | endpoint removed, method flip, required field added, enum value dropped, response type changed | exit 2 |
