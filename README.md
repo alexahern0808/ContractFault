@@ -231,3 +231,15 @@ The subtle cases are where the design earns its keep:
   it silently invalidates retry logic. A text differ would never catch this.
 - **A parameter *addition* shakes every caller of the endpoint**, but a
   parameter *value* change only shakes consumers that set that specific param.
+
+The complete rule table (thirty-plus codes) lives in
+[`docs/CONTRACT.md`](docs/CONTRACT.md#33-rule-table).
+
+---
+
+## How the blast radius is computed
+
+A tremor with no town on top of it is a curiosity, not an incident.
+contractfault only counts a change against a consumer when that consumer
+actually depends on the affected element:
+
