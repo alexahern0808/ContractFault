@@ -256,3 +256,15 @@ critical break to `4.0 × 3 = 12.0`; a `low`-criticality consumer feeling the
 same break releases only `4.0 × 1 = 4.0`. The town's construction quality
 matters as much as the quake.
 
+The raw energy is then compressed onto a Richter-like 0–10 dial:
+
+```
+magnitude = 10 · (1 − 1 / (1 + raw / 12))
+```
+
+so a fistful of critical breaks dominates the reading while an avalanche of
+harmless `info` changes never saturates the meter.
+
+---
+
+## The contract format in 30 seconds
