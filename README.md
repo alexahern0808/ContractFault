@@ -281,3 +281,16 @@ delete-plus-add.
     "OrderStatus": { "kind": "string", "enum": ["pending", "paid", "shipped"] },
     "Order": {
       "kind": "object",
+      "fields": {
+        "id":     { "type": "string", "required": true },
+        "status": { "type": "OrderStatus", "required": true },
+        "note":   { "type": "string", "nullable": true }
+      }
+    }
+  },
+  "endpoints": [
+    {
+      "id": "getOrder", "method": "GET", "path": "/orders/{id}", "idempotent": true,
+      "params": [{ "name": "id", "in": "path", "type": "string", "required": true }],
+      "responses": { "200": "Order", "404": "Error" }
+    }
