@@ -306,3 +306,16 @@ without exposing your source tree, precise enough to compute a real blast radius
   "name": "checkout-web",
   "team": "storefront",
   "criticality": "high",
+  "uses": [
+    { "endpoint": "getOrder", "readsFields": ["Order.id", "Order.status"] }
+  ]
+}
+```
+
+Both formats are decoded strictly — an unknown key is a hard error, so typos
+fail loudly instead of silently disarming a check. Full spec:
+[`docs/CONTRACT.md`](docs/CONTRACT.md).
+
+---
+
+## CLI reference
