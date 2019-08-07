@@ -294,3 +294,15 @@ delete-plus-add.
       "params": [{ "name": "id", "in": "path", "type": "string", "required": true }],
       "responses": { "200": "Order", "404": "Error" }
     }
+  ]
+}
+```
+
+A consumer manifest declares only what it touches — coarse enough to publish
+without exposing your source tree, precise enough to compute a real blast radius:
+
+```json
+{
+  "name": "checkout-web",
+  "team": "storefront",
+  "criticality": "high",
