@@ -319,3 +319,15 @@ fail loudly instead of silently disarming a check. Full spec:
 ---
 
 ## CLI reference
+
+```
+contractfault -old <before.json> -new <after.json> [flags]
+
+  -old string           previous contract version (required)
+  -new string           new contract version (required)
+  -consumers string     glob or comma-separated list of manifest paths
+  -format string        output format: text | json          (default "text")
+  -out string           write report to a file instead of stdout
+  -fail-on-behavioral   treat behavioral-only shifts as failure (exit 2)
+  -quiet                print only the one-line verdict summary
+```
