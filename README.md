@@ -331,3 +331,16 @@ contractfault -old <before.json> -new <after.json> [flags]
   -fail-on-behavioral   treat behavioral-only shifts as failure (exit 2)
   -quiet                print only the one-line verdict summary
 ```
+
+**Exit codes:** `0` stable · `1` shaken (behavioral) · `2` rupture (breaking) ·
+`3` usage/IO error. Wire it straight into a pipeline:
+
+```yaml
+- name: Contract safety gate
+  run: contractfault -old base.json -new head.json -consumers "consumers/*.json"
+  # job fails automatically on exit 2
+```
+
+---
+
+## Building, testing, hacking
