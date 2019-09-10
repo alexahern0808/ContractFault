@@ -382,3 +382,15 @@ trust.
   feeling a critical break still shows up — it just contributes less magnitude.
   You never lose information, you only reprioritize.
 - **Two exit-code producers, one schema.** Both the Go CLI and the TS viewer
+  derive the same CI verdict from the report, so you can gate on whichever half
+  is convenient in a given pipeline.
+- **Seismic vocabulary throughout.** `tremor`, `magnitude`, `blast radius`,
+  `rupture` — consistent metaphor, consistent code. The verdict word alone tells
+  a reviewer whether to keep reading.
+
+---
+
+## FAQ
+
+**Is this OpenAPI-compatible?** No, and deliberately so. OpenAPI is enormous;
+contractfault ingests a small, purpose-built subset that captures exactly the
