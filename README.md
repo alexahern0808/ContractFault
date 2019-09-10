@@ -357,3 +357,15 @@ make ci           # exactly what CI runs
 
 The test suites cover the fault mechanics directly: classification rules
 (required-vs-optional, enum removal, idempotency, method flips), the
+consumer-join attribution rules, magnitude monotonicity and bounding,
+deterministic JSON output, exit-code mapping, and an end-to-end run against the
+shipped examples. The TypeScript side tests schema validation, the magnitude
+bar, colored/uncolored terminal rendering, XML-escaped SVG generation, and CLI
+argument parsing.
+
+Determinism is a first-class property: every collection is sorted before
+emission, so two runs over the same inputs produce byte-identical JSON. This is
+verified in tests and matters for CI — a report you can diff is a report you can
+trust.
+
+---
