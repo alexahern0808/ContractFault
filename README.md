@@ -369,3 +369,16 @@ verified in tests and matters for CI — a report you can diff is a report you c
 trust.
 
 ---
+
+## Design decisions worth knowing
+
+- **Stdlib only on the Go side.** No third-party dependencies. The parser,
+  classifier, joiner and renderers are all built on `encoding/json`, `sort`,
+  `flag` and friends. Fewer moving parts, nothing to audit, trivial to vendor.
+- **`id`-based endpoint correlation.** Paths and methods are attributes, not
+  identity. This is what lets the tool say "method changed" instead of the
+  useless "one endpoint removed, one added."
+- **Criticality is a multiplier, not a filter.** A low-criticality consumer
+  feeling a critical break still shows up — it just contributes less magnitude.
+  You never lose information, you only reprioritize.
+- **Two exit-code producers, one schema.** Both the Go CLI and the TS viewer
