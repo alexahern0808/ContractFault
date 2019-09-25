@@ -73,3 +73,21 @@ type Change struct {
 	// FieldPath is the "Type.field" path this change touches, if any.
 	FieldPath string `json:"fieldPath,omitempty"`
 	// ParamKey is the parameter key this change touches, if any.
+	ParamKey string `json:"paramKey,omitempty"`
+	// Detail is a one-line human description of what changed.
+	Detail string `json:"detail"`
+	// Migration is an actionable hint for consumers.
+	Migration string `json:"migration"`
+}
+
+// severityRank exposes the numeric severity for sorting and scoring.
+func severityRank(s string) int {
+	switch s {
+	case "critical":
+		return 4
+	case "major":
+		return 3
+	case "minor":
+		return 2
+	default:
+		return 1
