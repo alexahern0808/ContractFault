@@ -91,3 +91,21 @@ func severityRank(s string) int {
 		return 2
 	default:
 		return 1
+	}
+}
+
+// Diff holds the full set of classified changes between two versions.
+type Diff struct {
+	FromVersion string
+	ToVersion   string
+	Service     string
+	Changes     []Change
+}
+
+// Compare classifies every difference between the old and new contract.
+// The two contracts must describe the same service.
+func Compare(oldC, newC *contract.Contract) (*Diff, error) {
+	if oldC.Service != newC.Service {
+		return nil, fmt.Errorf("analyze: service mismatch %q vs %q", oldC.Service, newC.Service)
+	}
+	d := &Diff{
