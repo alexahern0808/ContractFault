@@ -109,3 +109,20 @@ func Compare(oldC, newC *contract.Contract) (*Diff, error) {
 		return nil, fmt.Errorf("analyze: service mismatch %q vs %q", oldC.Service, newC.Service)
 	}
 	d := &Diff{
+		FromVersion: oldC.Version,
+		ToVersion:   newC.Version,
+		Service:     newC.Service,
+	}
+	d.diffEndpoints(oldC, newC)
+	d.diffTypes(oldC, newC)
+	d.sortChanges()
+	return d, nil
+}
+
+func (d *Diff) add(c Change) { d.Changes = append(d.Changes, c) }
+
+// diffEndpoints classifies endpoint-level differences.
+func (d *Diff) diffEndpoints(oldC, newC *contract.Contract) {
+	oldEps := oldC.EndpointByID()
+	newEps := newC.EndpointByID()
+
