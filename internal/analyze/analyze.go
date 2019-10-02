@@ -144,3 +144,21 @@ func (d *Diff) diffEndpoints(oldC, newC *contract.Contract) {
 	}
 	for id, ne := range newEps {
 		if _, ok := oldEps[id]; !ok {
+			d.add(Change{
+				Code:      "endpoint.added",
+				Category:  Additive,
+				Severity:  Info.String(),
+				Location:  id,
+				Endpoint:  id,
+				Detail:    fmt.Sprintf("endpoint %s %s (%s) was added", ne.Method, ne.Path, id),
+				Migration: "No action required; new capability is available to adopt.",
+			})
+		}
+	}
+}
+
+// diffEndpointPair classifies differences within a single correlated endpoint.
+func (d *Diff) diffEndpointPair(oe, ne contract.Endpoint) {
+	if oe.Method != ne.Method {
+		d.add(Change{
+			Code:      "endpoint.method.changed",
