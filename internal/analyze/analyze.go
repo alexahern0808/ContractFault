@@ -126,3 +126,21 @@ func (d *Diff) diffEndpoints(oldC, newC *contract.Contract) {
 	oldEps := oldC.EndpointByID()
 	newEps := newC.EndpointByID()
 
+	for id, oe := range oldEps {
+		ne, ok := newEps[id]
+		if !ok {
+			d.add(Change{
+				Code:      "endpoint.removed",
+				Category:  Breaking,
+				Severity:  Critical.String(),
+				Location:  id,
+				Endpoint:  id,
+				Detail:    fmt.Sprintf("endpoint %s %s (%s) was removed", oe.Method, oe.Path, id),
+				Migration: "Stop calling this endpoint; migrate to a replacement operation before upgrading.",
+			})
+			continue
+		}
+		d.diffEndpointPair(oe, ne)
+	}
+	for id, ne := range newEps {
+		if _, ok := oldEps[id]; !ok {
