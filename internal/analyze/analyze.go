@@ -215,3 +215,20 @@ func (d *Diff) diffEndpointPair(oe, ne contract.Endpoint) {
 		})
 	}
 	d.diffParams(oe, ne)
+	d.diffResponses(oe, ne)
+}
+
+// diffParams classifies parameter differences within an endpoint.
+func (d *Diff) diffParams(oe, ne contract.Endpoint) {
+	oldP := map[string]contract.Param{}
+	for _, p := range oe.Params {
+		oldP[p.Key()] = p
+	}
+	newP := map[string]contract.Param{}
+	for _, p := range ne.Params {
+		newP[p.Key()] = p
+	}
+	for k, op := range oldP {
+		np, ok := newP[k]
+		if !ok {
+			cat, sev := Additive, Minor
