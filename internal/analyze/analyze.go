@@ -232,3 +232,21 @@ func (d *Diff) diffParams(oe, ne contract.Endpoint) {
 		np, ok := newP[k]
 		if !ok {
 			cat, sev := Additive, Minor
+			mig := "Parameter removed; stop sending it (ignored if still present)."
+			if op.Required {
+				cat, sev = Breaking, Major
+				mig = "A required parameter was removed; update calls that relied on it."
+			}
+			d.add(Change{
+				Code:      "param.removed",
+				Category:  cat,
+				Severity:  sev.String(),
+				Location:  ne.ID + "#" + k,
+				Endpoint:  ne.ID,
+				ParamKey:  k,
+				Detail:    fmt.Sprintf("parameter %s removed", k),
+				Migration: mig,
+			})
+			continue
+		}
+		if !op.Required && np.Required {
