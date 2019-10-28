@@ -356,3 +356,21 @@ func (d *Diff) diffResponses(oe, ne contract.Endpoint) {
 func (d *Diff) diffTypes(oldC, newC *contract.Contract) {
 	for _, name := range oldC.SortedTypeNames() {
 		ot := oldC.Types[name]
+		nt, ok := newC.Types[name]
+		if !ok {
+			d.add(Change{
+				Code:      "type.removed",
+				Category:  Breaking,
+				Severity:  Major.String(),
+				Location:  name,
+				Detail:    fmt.Sprintf("type %s removed", name),
+				Migration: "Remove references to this type; it no longer exists.",
+			})
+			continue
+		}
+		d.diffTypePair(ot, nt)
+	}
+	for _, name := range newC.SortedTypeNames() {
+		if _, ok := oldC.Types[name]; !ok {
+			d.add(Change{
+				Code:      "type.added",
