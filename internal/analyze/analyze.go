@@ -339,3 +339,20 @@ func (d *Diff) diffResponses(oe, ne contract.Endpoint) {
 	}
 	for code, nref := range ne.Responses {
 		if _, ok := oe.Responses[code]; !ok {
+			d.add(Change{
+				Code:      "response.added",
+				Category:  Additive,
+				Severity:  Info.String(),
+				Location:  ne.ID + "#" + code,
+				Endpoint:  ne.ID,
+				Detail:    fmt.Sprintf("response %s (%s) added", code, nref),
+				Migration: "Optionally handle the new status code.",
+			})
+		}
+	}
+}
+
+// diffTypes classifies type- and field-level differences.
+func (d *Diff) diffTypes(oldC, newC *contract.Contract) {
+	for _, name := range oldC.SortedTypeNames() {
+		ot := oldC.Types[name]
