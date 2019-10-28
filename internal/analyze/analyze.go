@@ -303,3 +303,21 @@ func (d *Diff) diffParams(oe, ne contract.Endpoint) {
 			Location:  ne.ID + "#" + k,
 			Endpoint:  ne.ID,
 			ParamKey:  k,
+			Detail:    fmt.Sprintf("parameter %s added (required=%v)", k, np.Required),
+			Migration: mig,
+		})
+	}
+}
+
+// diffResponses classifies response status/type differences.
+func (d *Diff) diffResponses(oe, ne contract.Endpoint) {
+	for code, oref := range oe.Responses {
+		nref, ok := ne.Responses[code]
+		if !ok {
+			d.add(Change{
+				Code:      "response.removed",
+				Category:  Breaking,
+				Severity:  Major.String(),
+				Location:  ne.ID + "#" + code,
+				Endpoint:  ne.ID,
+				Detail:    fmt.Sprintf("response %s removed", code),
