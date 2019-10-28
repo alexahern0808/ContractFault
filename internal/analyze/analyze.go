@@ -285,3 +285,21 @@ func (d *Diff) diffParams(oe, ne contract.Endpoint) {
 				Migration: "Stop sending the removed values; choose a still-valid option.",
 			})
 		}
+	}
+	for k, np := range newP {
+		if _, ok := oldP[k]; ok {
+			continue
+		}
+		cat, sev := Additive, Info
+		mig := "Optional parameter added; adopt when useful."
+		if np.Required {
+			cat, sev = Breaking, Major
+			mig = fmt.Sprintf("A required parameter %s was added; all callers must supply it.", np.Name)
+		}
+		d.add(Change{
+			Code:      "param.added",
+			Category:  cat,
+			Severity:  sev.String(),
+			Location:  ne.ID + "#" + k,
+			Endpoint:  ne.ID,
+			ParamKey:  k,
