@@ -374,3 +374,21 @@ func (d *Diff) diffTypes(oldC, newC *contract.Contract) {
 		if _, ok := oldC.Types[name]; !ok {
 			d.add(Change{
 				Code:      "type.added",
+				Category:  Additive,
+				Severity:  Info.String(),
+				Location:  name,
+				Detail:    fmt.Sprintf("type %s added", name),
+				Migration: "New type available; adopt when needed.",
+			})
+		}
+	}
+}
+
+// diffTypePair classifies differences within a correlated type.
+func (d *Diff) diffTypePair(ot, nt contract.Type) {
+	name := nt.Name
+	if ot.Kind != nt.Kind {
+		d.add(Change{
+			Code:      "type.kind.changed",
+			Category:  Breaking,
+			Severity:  Critical.String(),
