@@ -321,3 +321,21 @@ func (d *Diff) diffResponses(oe, ne contract.Endpoint) {
 				Location:  ne.ID + "#" + code,
 				Endpoint:  ne.ID,
 				Detail:    fmt.Sprintf("response %s removed", code),
+				Migration: fmt.Sprintf("Stop relying on the %s response; handle the remaining status codes.", code),
+			})
+			continue
+		}
+		if oref != nref {
+			d.add(Change{
+				Code:      "response.type.changed",
+				Category:  Breaking,
+				Severity:  Major.String(),
+				Location:  ne.ID + "#" + code,
+				Endpoint:  ne.ID,
+				Detail:    fmt.Sprintf("response %s body type changed %q -> %q", code, oref, nref),
+				Migration: "Update response parsing to the new body type.",
+			})
+		}
+	}
+	for code, nref := range ne.Responses {
+		if _, ok := oe.Responses[code]; !ok {
