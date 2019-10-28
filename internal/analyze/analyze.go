@@ -268,3 +268,20 @@ func (d *Diff) diffParams(oe, ne contract.Endpoint) {
 				Severity:  Info.String(),
 				Location:  ne.ID + "#" + k,
 				Endpoint:  ne.ID,
+				ParamKey:  k,
+				Detail:    fmt.Sprintf("parameter %s became optional", k),
+				Migration: "No action required; the parameter is now optional.",
+			})
+		}
+		if removed := removedEnum(op.Enum, np.Enum); len(removed) > 0 {
+			d.add(Change{
+				Code:      "param.enum.removed",
+				Category:  Breaking,
+				Severity:  Major.String(),
+				Location:  ne.ID + "#" + k,
+				Endpoint:  ne.ID,
+				ParamKey:  k,
+				Detail:    fmt.Sprintf("parameter %s dropped enum values %s", k, strings.Join(removed, ",")),
+				Migration: "Stop sending the removed values; choose a still-valid option.",
+			})
+		}
