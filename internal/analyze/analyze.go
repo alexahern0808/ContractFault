@@ -409,3 +409,21 @@ func (d *Diff) diffTypePair(ot, nt contract.Type) {
 	}
 	if added := removedEnum(nt.Enum, ot.Enum); len(added) > 0 {
 		d.add(Change{
+			Code:      "type.enum.added",
+			Category:  Behavioral,
+			Severity:  Minor.String(),
+			Location:  name,
+			Detail:    fmt.Sprintf("type %s gained enum values %s", name, strings.Join(added, ",")),
+			Migration: "Ensure consumers tolerate the new enum values.",
+		})
+	}
+	for fname, of := range ot.Fields {
+		path := name + "." + fname
+		nf, ok := nt.Fields[fname]
+		if !ok {
+			d.add(Change{
+				Code:      "field.removed",
+				Category:  Breaking,
+				Severity:  Major.String(),
+				Location:  path,
+				FieldPath: path,
