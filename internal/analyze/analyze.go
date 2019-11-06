@@ -427,3 +427,21 @@ func (d *Diff) diffTypePair(ot, nt contract.Type) {
 				Severity:  Major.String(),
 				Location:  path,
 				FieldPath: path,
+				Detail:    fmt.Sprintf("field %s removed", path),
+				Migration: fmt.Sprintf("Stop reading %s; it is no longer present.", path),
+			})
+			continue
+		}
+		d.diffFieldPair(path, of, nf)
+	}
+	for fname, nf := range nt.Fields {
+		if _, ok := ot.Fields[fname]; ok {
+			continue
+		}
+		path := name + "." + fname
+		cat, sev := Additive, Info
+		mig := "New optional field; read it when useful."
+		if nf.Required {
+			cat, sev = Breaking, Major
+			mig = fmt.Sprintf("A required field %s was added; producers must populate it.", path)
+		}
