@@ -462,3 +462,21 @@ func (d *Diff) diffFieldPair(path string, of, nf contract.Field) {
 	if of.TypeRef != nf.TypeRef {
 		d.add(Change{
 			Code:      "field.type.changed",
+			Category:  Breaking,
+			Severity:  Major.String(),
+			Location:  path,
+			FieldPath: path,
+			Detail:    fmt.Sprintf("field %s type changed %q -> %q", path, of.TypeRef, nf.TypeRef),
+			Migration: "Update the field's parsed type to match.",
+		})
+	}
+	if of.Array != nf.Array {
+		d.add(Change{
+			Code:      "field.arity.changed",
+			Category:  Breaking,
+			Severity:  Major.String(),
+			Location:  path,
+			FieldPath: path,
+			Detail:    fmt.Sprintf("field %s arity changed array %v -> %v", path, of.Array, nf.Array),
+			Migration: "Switch between scalar and array handling for this field.",
+		})
