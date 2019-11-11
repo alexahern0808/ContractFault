@@ -480,3 +480,21 @@ func (d *Diff) diffFieldPair(path string, of, nf contract.Field) {
 			Detail:    fmt.Sprintf("field %s arity changed array %v -> %v", path, of.Array, nf.Array),
 			Migration: "Switch between scalar and array handling for this field.",
 		})
+	}
+	if !of.Required && nf.Required {
+		d.add(Change{
+			Code:      "field.required.added",
+			Category:  Breaking,
+			Severity:  Major.String(),
+			Location:  path,
+			FieldPath: path,
+			Detail:    fmt.Sprintf("field %s became required", path),
+			Migration: fmt.Sprintf("Always populate %s; it is now mandatory.", path),
+		})
+	}
+	if of.Required && !nf.Required {
+		d.add(Change{
+			Code:      "field.required.relaxed",
+			Category:  Behavioral,
+			Severity:  Minor.String(),
+			Location:  path,
