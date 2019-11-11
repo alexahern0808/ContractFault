@@ -498,3 +498,20 @@ func (d *Diff) diffFieldPair(path string, of, nf contract.Field) {
 			Category:  Behavioral,
 			Severity:  Minor.String(),
 			Location:  path,
+			FieldPath: path,
+			Detail:    fmt.Sprintf("field %s became optional", path),
+			Migration: fmt.Sprintf("Handle %s being absent; it may be omitted.", path),
+		})
+	}
+	if !of.Nullable && nf.Nullable {
+		d.add(Change{
+			Code:      "field.nullable.added",
+			Category:  Behavioral,
+			Severity:  Major.String(),
+			Location:  path,
+			FieldPath: path,
+			Detail:    fmt.Sprintf("field %s became nullable", path),
+			Migration: fmt.Sprintf("Guard against null values for %s.", path),
+		})
+	}
+	if of.Nullable && !nf.Nullable {
