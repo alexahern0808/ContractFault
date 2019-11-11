@@ -445,3 +445,20 @@ func (d *Diff) diffTypePair(ot, nt contract.Type) {
 			cat, sev = Breaking, Major
 			mig = fmt.Sprintf("A required field %s was added; producers must populate it.", path)
 		}
+		d.add(Change{
+			Code:      "field.added",
+			Category:  cat,
+			Severity:  sev.String(),
+			Location:  path,
+			FieldPath: path,
+			Detail:    fmt.Sprintf("field %s added (required=%v)", path, nf.Required),
+			Migration: mig,
+		})
+	}
+}
+
+// diffFieldPair classifies differences within a correlated field.
+func (d *Diff) diffFieldPair(path string, of, nf contract.Field) {
+	if of.TypeRef != nf.TypeRef {
+		d.add(Change{
+			Code:      "field.type.changed",
