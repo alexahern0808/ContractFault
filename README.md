@@ -394,3 +394,54 @@ trust.
 
 **Is this OpenAPI-compatible?** No, and deliberately so. OpenAPI is enormous;
 contractfault ingests a small, purpose-built subset that captures exactly the
+properties that drive consumer impact (required-ness, nullability, arity, enum
+membership, idempotency). You can generate the format from OpenAPI upstream.
+
+**Why not just semver?** Semver tells you *that* something broke. contractfault
+tells you *what* broke, *who* it breaks, and *how to fix it* — and it computes
+the semver bump for you from the change categories.
+
+**Can a change be additive to one consumer and breaking to another?** The change
+*category* is a property of the contract, but the *magnitude* felt is per-town.
+A breaking change that touches no consumer contributes zero energy — the fault
+moved, but nobody lived on it.
+
+---
+
+## Roadmap — delivered milestones
+
+ContractFault is developed in small, finished increments. Every milestone below
+is delivered, tested and documented; the two open ones are tracked for the next
+cycle. Nothing on this list is aspirational marketing — each shipped item maps
+to code, tests and a docs section you can read today.
+
+- [x] **Contract loader with strict decoding** — unknown keys are hard errors,
+      endpoints correlate by stable `id`. *Delivered: 2019-08-22.*
+- [x] **Consumer manifests + criticality weighting** — coarse, publishable
+      manifests; `high`/`medium`/`low` multipliers. *Delivered: 2020-11-05.*
+- [x] **Classification engine** — breaking / additive / behavioral across 30+
+      rule codes (required-ness, enums, nullability, arity, idempotency,
+      method flips, deprecation). *Delivered: 2021-12-09.*
+- [x] **Consumer blast-radius join** — every tremor attributed to the named
+      consumers that actually depend on it. *Delivered: 2022-10-12.*
+- [x] **Magnitude compression + verdicts** — Richter-style 0–10 dial with
+      `stable` / `tremor` / `shaken` / `rupture`. *Delivered: 2023-09-21.*
+- [x] **TypeScript seismic viewer** — colorized terminal impact map plus the
+      animated SVG seismograph. *Delivered: 2024-11-14.*
+- [x] **Deterministic reports + CI gate** — byte-identical JSON for identical
+      inputs; exit codes 0/1/2 wired for pipelines. *Delivered: 2025-11-18.*
+- [x] **`-fail-on-behavioral` pipeline flag** — treat behavioral-only shifts as
+      a hard failure when your SLA demands it. *Delivered: 2026-08-09.*
+- [ ] **Monorepo mode** — multi-service contracts in a single run with a
+      combined report. *Planned: next cycle.*
+- [ ] **OpenAPI import shim** — generate the contract format from an existing
+      OpenAPI document. *Planned: next cycle.*
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE). Built as a seismic fault laboratory for API
+evolution. Change the ground carefully; someone lives downhill.
+
+<!-- draft note 112 -->
