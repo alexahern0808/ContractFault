@@ -12,3 +12,10 @@ func build(version string, types map[string]contract.Type, eps ...contract.Endpo
 	return c
 }
 
+func find(d *Diff, code string) *Change {
+	for i := range d.Changes {
+		if d.Changes[i].Code == code {
+			return &d.Changes[i]
+		}
+	}
+	return nil
