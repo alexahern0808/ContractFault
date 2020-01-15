@@ -19,3 +19,11 @@ func find(d *Diff, code string) *Change {
 		}
 	}
 	return nil
+}
+
+func TestEndpointRemovedIsBreakingCritical(t *testing.T) {
+	oldC := build("1", nil, contract.Endpoint{ID: "a", Method: "GET", Path: "/a"})
+	newC := build("2", nil)
+	d, err := Compare(oldC, newC)
+	if err != nil {
+		t.Fatal(err)
