@@ -34,3 +34,10 @@ func TestEndpointRemovedIsBreakingCritical(t *testing.T) {
 	}
 	if c.Category != Breaking || c.Severity != "critical" {
 		t.Errorf("got %s/%s", c.Category, c.Severity)
+	}
+}
+
+func TestEndpointAddedIsAdditive(t *testing.T) {
+	oldC := build("1", nil)
+	newC := build("2", nil, contract.Endpoint{ID: "a", Method: "GET", Path: "/a"})
+	d, _ := Compare(oldC, newC)
