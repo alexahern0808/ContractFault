@@ -55,3 +55,10 @@ func TestRequiredFieldAddedIsBreaking(t *testing.T) {
 	c := find(d, "field.added")
 	if c == nil || c.Category != Breaking {
 		t.Fatalf("required field.added should be breaking: %+v", c)
+	}
+}
+
+func TestOptionalFieldAddedIsAdditive(t *testing.T) {
+	oldT := map[string]contract.Type{"T": {Kind: "object", Fields: map[string]contract.Field{}}}
+	newT := map[string]contract.Type{"T": {Kind: "object", Fields: map[string]contract.Field{
+		"x": {TypeRef: "string"},
