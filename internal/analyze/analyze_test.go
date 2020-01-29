@@ -62,3 +62,10 @@ func TestOptionalFieldAddedIsAdditive(t *testing.T) {
 	oldT := map[string]contract.Type{"T": {Kind: "object", Fields: map[string]contract.Field{}}}
 	newT := map[string]contract.Type{"T": {Kind: "object", Fields: map[string]contract.Field{
 		"x": {TypeRef: "string"},
+	}}}
+	d, _ := Compare(build("1", oldT), build("2", newT))
+	if c := find(d, "field.added"); c == nil || c.Category != Additive {
+		t.Fatalf("optional field.added should be additive: %+v", c)
+	}
+}
+
