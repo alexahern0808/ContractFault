@@ -69,3 +69,11 @@ func TestOptionalFieldAddedIsAdditive(t *testing.T) {
 	}
 }
 
+func TestNullableAddedIsBehavioral(t *testing.T) {
+	oldT := map[string]contract.Type{"T": {Kind: "object", Fields: map[string]contract.Field{
+		"x": {TypeRef: "string"},
+	}}}
+	newT := map[string]contract.Type{"T": {Kind: "object", Fields: map[string]contract.Field{
+		"x": {TypeRef: "string", Nullable: true},
+	}}}
+	d, _ := Compare(build("1", oldT), build("2", newT))
