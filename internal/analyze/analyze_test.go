@@ -84,3 +84,10 @@ func TestNullableAddedIsBehavioral(t *testing.T) {
 
 func TestEnumRemovedIsBreaking(t *testing.T) {
 	oldT := map[string]contract.Type{"S": {Kind: "string", Enum: []string{"a", "b", "c"}}}
+	newT := map[string]contract.Type{"S": {Kind: "string", Enum: []string{"a", "b"}}}
+	d, _ := Compare(build("1", oldT), build("2", newT))
+	c := find(d, "type.enum.removed")
+	if c == nil || c.Category != Breaking {
+		t.Fatalf("enum removal should be breaking: %+v", c)
+	}
+}
