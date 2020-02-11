@@ -98,3 +98,10 @@ func TestMethodChangeIsBreaking(t *testing.T) {
 	d, _ := Compare(oldC, newC)
 	if c := find(d, "endpoint.method.changed"); c == nil || c.Category != Breaking {
 		t.Fatalf("method change should be breaking: %+v", c)
+	}
+}
+
+func TestIdempotencyChangeIsBehavioral(t *testing.T) {
+	oldC := build("1", nil, contract.Endpoint{ID: "a", Method: "POST", Path: "/a", Idempotent: true})
+	newC := build("2", nil, contract.Endpoint{ID: "a", Method: "POST", Path: "/a", Idempotent: false})
+	d, _ := Compare(oldC, newC)
