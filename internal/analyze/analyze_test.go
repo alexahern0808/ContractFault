@@ -119,3 +119,11 @@ func TestRequiredParamAddedIsBreaking(t *testing.T) {
 		t.Fatalf("required param add should be breaking: %+v", c)
 	}
 }
+
+func TestServiceMismatchErrors(t *testing.T) {
+	a := &contract.Contract{Service: "x", Version: "1"}
+	b := &contract.Contract{Service: "y", Version: "2"}
+	if _, err := Compare(a, b); err == nil {
+		t.Fatal("expected service mismatch error")
+	}
+}
