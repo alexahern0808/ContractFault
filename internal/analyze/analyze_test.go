@@ -105,3 +105,10 @@ func TestIdempotencyChangeIsBehavioral(t *testing.T) {
 	oldC := build("1", nil, contract.Endpoint{ID: "a", Method: "POST", Path: "/a", Idempotent: true})
 	newC := build("2", nil, contract.Endpoint{ID: "a", Method: "POST", Path: "/a", Idempotent: false})
 	d, _ := Compare(oldC, newC)
+	if c := find(d, "endpoint.idempotency.changed"); c == nil || c.Category != Behavioral {
+		t.Fatalf("idempotency change should be behavioral: %+v", c)
+	}
+}
+
+func TestRequiredParamAddedIsBreaking(t *testing.T) {
+	oldC := build("1", nil, contract.Endpoint{ID: "a", Method: "GET", Path: "/a"})
