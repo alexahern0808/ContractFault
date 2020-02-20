@@ -112,3 +112,10 @@ func TestIdempotencyChangeIsBehavioral(t *testing.T) {
 
 func TestRequiredParamAddedIsBreaking(t *testing.T) {
 	oldC := build("1", nil, contract.Endpoint{ID: "a", Method: "GET", Path: "/a"})
+	newC := build("2", nil, contract.Endpoint{ID: "a", Method: "GET", Path: "/a",
+		Params: []contract.Param{{Name: "q", In: "query", TypeRef: "string", Required: true}}})
+	d, _ := Compare(oldC, newC)
+	if c := find(d, "param.added"); c == nil || c.Category != Breaking {
+		t.Fatalf("required param add should be breaking: %+v", c)
+	}
+}
