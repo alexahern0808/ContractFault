@@ -13,3 +13,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
+	"strings"
+)
+
+// Manifest describes one named consumer's dependence on a contract.
+type Manifest struct {
+	// Name is the consumer's service name ("checkout-web").
