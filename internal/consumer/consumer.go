@@ -28,3 +28,11 @@ type Manifest struct {
 	Criticality string `json:"criticality"`
 	// Uses lists the specific contract elements the consumer relies on.
 	Uses []Usage `json:"uses"`
+}
+
+// Usage is a single dependency edge from a consumer to a contract element.
+type Usage struct {
+	// Endpoint is the operation ID the consumer calls.
+	Endpoint string `json:"endpoint"`
+	// ReadsFields lists "Type.field" paths the consumer reads from responses.
+	ReadsFields []string `json:"readsFields,omitempty"`
