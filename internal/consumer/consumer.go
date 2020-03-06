@@ -36,3 +36,11 @@ type Usage struct {
 	Endpoint string `json:"endpoint"`
 	// ReadsFields lists "Type.field" paths the consumer reads from responses.
 	ReadsFields []string `json:"readsFields,omitempty"`
+	// WritesFields lists "Type.field" paths the consumer sends in requests.
+	WritesFields []string `json:"writesFields,omitempty"`
+	// Params lists request parameter keys ("query:status") the consumer sets.
+	Params []string `json:"params,omitempty"`
+}
+
+// CriticalityWeight maps the criticality label to a numeric multiplier.
+func (m Manifest) CriticalityWeight() int {
