@@ -67,3 +67,11 @@ func (m *Manifest) Validate() error {
 		return fmt.Errorf("consumer %q: invalid criticality %q", m.Name, m.Criticality)
 	}
 	for i, u := range m.Uses {
+		if strings.TrimSpace(u.Endpoint) == "" {
+			return fmt.Errorf("consumer %q: usage %d has empty endpoint", m.Name, i)
+		}
+	}
+	if strings.TrimSpace(m.Criticality) == "" {
+		m.Criticality = "low"
+	}
+	return nil
