@@ -98,3 +98,10 @@ func (m Manifest) FieldPaths() map[string]bool {
 			out[f] = true
 		}
 	}
+	return out
+}
+
+// ParamKeys returns the union of parameter keys used across all usages.
+func (m Manifest) ParamKeys() map[string]bool {
+	out := map[string]bool{}
+	for _, u := range m.Uses {
