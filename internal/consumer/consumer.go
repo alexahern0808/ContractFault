@@ -121,3 +121,11 @@ func Load(path string) (*Manifest, error) {
 	var m Manifest
 	dec := json.NewDecoder(strings.NewReader(string(raw)))
 	dec.DisallowUnknownFields()
+	if err := dec.Decode(&m); err != nil {
+		return nil, fmt.Errorf("consumer: decoding %s: %w", path, err)
+	}
+	if err := m.Validate(); err != nil {
+		return nil, err
+	}
+	return &m, nil
+}
