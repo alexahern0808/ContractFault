@@ -105,3 +105,11 @@ func (m Manifest) FieldPaths() map[string]bool {
 func (m Manifest) ParamKeys() map[string]bool {
 	out := map[string]bool{}
 	for _, u := range m.Uses {
+		for _, p := range u.Params {
+			out[p] = true
+		}
+	}
+	return out
+}
+
+// Load parses a single consumer manifest file.
