@@ -113,3 +113,11 @@ func (m Manifest) ParamKeys() map[string]bool {
 }
 
 // Load parses a single consumer manifest file.
+func Load(path string) (*Manifest, error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("consumer: reading %s: %w", path, err)
+	}
+	var m Manifest
+	dec := json.NewDecoder(strings.NewReader(string(raw)))
+	dec.DisallowUnknownFields()
