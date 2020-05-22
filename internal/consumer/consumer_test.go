@@ -17,3 +17,6 @@ func TestValidateRejectsBadCriticality(t *testing.T) {
 	if err := m.Validate(); err == nil {
 		t.Fatal("expected invalid criticality error")
 	}
+}
+
+func TestValidateDefaultsEmptyCriticality(t *testing.T) {
