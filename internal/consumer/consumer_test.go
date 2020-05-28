@@ -26,3 +26,6 @@ func TestValidateDefaultsEmptyCriticality(t *testing.T) {
 	}
 	if m.Criticality != "low" {
 		t.Fatalf("empty criticality should default to low, got %q", m.Criticality)
+	}
+}
+
