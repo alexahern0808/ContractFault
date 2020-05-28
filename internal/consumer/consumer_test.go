@@ -23,3 +23,6 @@ func TestValidateDefaultsEmptyCriticality(t *testing.T) {
 	m := Manifest{Name: "c"}
 	if err := m.Validate(); err != nil {
 		t.Fatal(err)
+	}
+	if m.Criticality != "low" {
+		t.Fatalf("empty criticality should default to low, got %q", m.Criticality)
