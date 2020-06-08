@@ -28,3 +28,12 @@ type Contract struct {
 	// Endpoints is the list of operations exposed by the service.
 	Endpoints []Endpoint `json:"endpoints"`
 }
+
+// Type is a reusable object type: a named bag of fields plus optional enum
+// value constraints for scalar types.
+type Type struct {
+	// Name is the type identifier, mirrored from the map key for convenience.
+	Name string `json:"name,omitempty"`
+	// Kind is one of "object", "string", "integer", "number", "boolean".
+	// Object types carry Fields; scalar types may carry Enum.
+	Kind string `json:"kind"`
