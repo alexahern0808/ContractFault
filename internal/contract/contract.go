@@ -46,3 +46,13 @@ type Type struct {
 	Deprecated bool `json:"deprecated,omitempty"`
 }
 
+// Field is a member of an object type.
+type Field struct {
+	// TypeRef names the type of the field. It is either a builtin scalar
+	// ("string", "integer", "number", "boolean") or the name of a Type.
+	TypeRef string `json:"type"`
+	// Required indicates the field must always be present in a payload.
+	Required bool `json:"required,omitempty"`
+	// Nullable indicates the field may carry an explicit null value.
+	Nullable bool `json:"nullable,omitempty"`
+	// Array indicates the field is a homogeneous list of TypeRef values.
