@@ -37,3 +37,12 @@ type Type struct {
 	// Kind is one of "object", "string", "integer", "number", "boolean".
 	// Object types carry Fields; scalar types may carry Enum.
 	Kind string `json:"kind"`
+	// Fields are the members of an object type keyed by field name.
+	Fields map[string]Field `json:"fields,omitempty"`
+	// Enum lists the permitted values for a scalar type. An empty slice means
+	// the scalar is unconstrained.
+	Enum []string `json:"enum,omitempty"`
+	// Deprecated marks the whole type as scheduled for removal.
+	Deprecated bool `json:"deprecated,omitempty"`
+}
+
