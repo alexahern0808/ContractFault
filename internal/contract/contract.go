@@ -65,3 +65,12 @@ type Field struct {
 
 // Endpoint is a single API operation.
 type Endpoint struct {
+	// ID is a stable operation identifier ("getOrder"). It is the primary key
+	// used to correlate an endpoint across versions.
+	ID string `json:"id"`
+	// Method is the HTTP verb, upper-cased on load.
+	Method string `json:"method"`
+	// Path is the templated URL path ("/orders/{id}").
+	Path string `json:"path"`
+	// Params are the request parameters (path, query, header).
+	Params []Param `json:"params,omitempty"`
