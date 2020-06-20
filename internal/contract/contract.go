@@ -83,3 +83,12 @@ type Endpoint struct {
 	// Idempotent documents whether repeated calls are safe; a change here is a
 	// behavioral change even though the shape is identical.
 	Idempotent bool `json:"idempotent,omitempty"`
+}
+
+// Param is a request parameter.
+type Param struct {
+	// Name is the parameter name.
+	Name string `json:"name"`
+	// In is the location: "path", "query" or "header".
+	In string `json:"in"`
+	// TypeRef is the scalar type of the parameter value.
