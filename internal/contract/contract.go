@@ -129,3 +129,12 @@ func (c *Contract) Validate() error {
 		if seen[e.ID] {
 			return fmt.Errorf("contract: duplicate endpoint id %q", e.ID)
 		}
+		seen[e.ID] = true
+		if e.Method == "" {
+			return fmt.Errorf("contract: endpoint %q has empty method", e.ID)
+		}
+		if e.RequestType != "" && !c.knownType(e.RequestType) {
+			return fmt.Errorf("contract: endpoint %q references unknown request type %q", e.ID, e.RequestType)
+		}
+		for code, ref := range e.Responses {
+			if ref != "" && !c.knownType(ref) {
