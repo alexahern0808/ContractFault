@@ -102,3 +102,12 @@ type Param struct {
 // Key returns the correlation key for a parameter within an endpoint.
 func (p Param) Key() string { return p.In + ":" + p.Name }
 
+// EndpointByID indexes the contract's endpoints by their stable ID.
+func (c *Contract) EndpointByID() map[string]Endpoint {
+	out := make(map[string]Endpoint, len(c.Endpoints))
+	for _, e := range c.Endpoints {
+		out[e.ID] = e
+	}
+	return out
+}
+
