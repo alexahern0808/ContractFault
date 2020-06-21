@@ -138,3 +138,12 @@ func (c *Contract) Validate() error {
 		}
 		for code, ref := range e.Responses {
 			if ref != "" && !c.knownType(ref) {
+				return fmt.Errorf("contract: endpoint %q response %s references unknown type %q", e.ID, code, ref)
+			}
+		}
+	}
+	for name, t := range c.Types {
+		for fname, f := range t.Fields {
+			if f.TypeRef != "" && !c.knownType(f.TypeRef) {
+				return fmt.Errorf("contract: type %q field %q references unknown type %q", name, fname, f.TypeRef)
+			}
