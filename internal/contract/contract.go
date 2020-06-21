@@ -111,3 +111,12 @@ func (c *Contract) EndpointByID() map[string]Endpoint {
 	return out
 }
 
+// Validate checks structural invariants and returns a descriptive error when
+// the document is internally inconsistent. It is deliberately strict so that a
+// malformed contract fails loudly rather than producing a misleading report.
+func (c *Contract) Validate() error {
+	if strings.TrimSpace(c.Service) == "" {
+		return fmt.Errorf("contract: service name is empty")
+	}
+	if strings.TrimSpace(c.Version) == "" {
+		return fmt.Errorf("contract: version is empty")
