@@ -120,3 +120,12 @@ func (c *Contract) Validate() error {
 	}
 	if strings.TrimSpace(c.Version) == "" {
 		return fmt.Errorf("contract: version is empty")
+	}
+	seen := make(map[string]bool)
+	for _, e := range c.Endpoints {
+		if e.ID == "" {
+			return fmt.Errorf("contract: endpoint with empty id (path %q)", e.Path)
+		}
+		if seen[e.ID] {
+			return fmt.Errorf("contract: duplicate endpoint id %q", e.ID)
+		}
