@@ -157,3 +157,12 @@ func (c *Contract) knownType(ref string) bool {
 	case "string", "integer", "number", "boolean", "object":
 		return true
 	}
+	_, ok := c.Types[ref]
+	return ok
+}
+
+// SortedTypeNames returns type names in deterministic order.
+func (c *Contract) SortedTypeNames() []string {
+	names := make([]string, 0, len(c.Types))
+	for n := range c.Types {
+		names = append(names, n)
