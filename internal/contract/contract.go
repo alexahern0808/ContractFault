@@ -147,3 +147,13 @@ func (c *Contract) Validate() error {
 			if f.TypeRef != "" && !c.knownType(f.TypeRef) {
 				return fmt.Errorf("contract: type %q field %q references unknown type %q", name, fname, f.TypeRef)
 			}
+		}
+	}
+	return nil
+}
+
+func (c *Contract) knownType(ref string) bool {
+	switch ref {
+	case "string", "integer", "number", "boolean", "object":
+		return true
+	}
