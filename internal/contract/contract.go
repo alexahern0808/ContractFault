@@ -166,3 +166,12 @@ func (c *Contract) SortedTypeNames() []string {
 	names := make([]string, 0, len(c.Types))
 	for n := range c.Types {
 		names = append(names, n)
+	}
+	sort.Strings(names)
+	return names
+}
+
+// Load reads and parses a contract from a JSON file at path, normalizes it and
+// validates it. Any error is wrapped with the source path for diagnosability.
+func Load(path string) (*Contract, error) {
+	raw, err := os.ReadFile(path)
