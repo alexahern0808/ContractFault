@@ -20,3 +20,7 @@ func TestParseNormalizesMethodAndTypeName(t *testing.T) {
 	c, err := Parse([]byte(minimal), "test")
 	if err != nil {
 		t.Fatalf("parse: %v", err)
+	}
+	if got := c.Endpoints[0].Method; got != "GET" {
+		t.Errorf("method not upper-cased: %q", got)
+	}
