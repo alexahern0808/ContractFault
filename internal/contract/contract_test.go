@@ -29,3 +29,8 @@ func TestParseNormalizesMethodAndTypeName(t *testing.T) {
 	}
 }
 
+func TestValidateRejectsUnknownRequestType(t *testing.T) {
+	bad := `{
+      "service": "svc", "version": "1.0.0", "types": {},
+      "endpoints": [ { "id": "x", "method": "POST", "path": "/x", "requestType": "Nope" } ]
+    }`
