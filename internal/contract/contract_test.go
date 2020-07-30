@@ -34,3 +34,7 @@ func TestValidateRejectsUnknownRequestType(t *testing.T) {
       "service": "svc", "version": "1.0.0", "types": {},
       "endpoints": [ { "id": "x", "method": "POST", "path": "/x", "requestType": "Nope" } ]
     }`
+	_, err := Parse([]byte(bad), "test")
+	if err == nil || !strings.Contains(err.Error(), "unknown request type") {
+		t.Fatalf("expected unknown request type error, got %v", err)
+	}
