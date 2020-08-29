@@ -43,3 +43,8 @@ func TestValidateRejectsUnknownRequestType(t *testing.T) {
 func TestValidateRejectsDuplicateEndpointID(t *testing.T) {
 	dup := `{
       "service": "svc", "version": "1.0.0", "types": {},
+      "endpoints": [
+        { "id": "x", "method": "GET", "path": "/a" },
+        { "id": "x", "method": "GET", "path": "/b" }
+      ]
+    }`
