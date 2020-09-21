@@ -52,3 +52,8 @@ func TestValidateRejectsDuplicateEndpointID(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "duplicate endpoint id") {
 		t.Fatalf("expected duplicate id error, got %v", err)
 	}
+}
+
+func TestParseRejectsUnknownFields(t *testing.T) {
+	extra := `{ "service": "svc", "version": "1.0.0", "types": {}, "endpoints": [], "bogus": 1 }`
+	if _, err := Parse([]byte(extra), "test"); err == nil {
