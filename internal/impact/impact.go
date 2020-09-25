@@ -1,0 +1,25 @@
+// Package impact joins classified contract changes against consumer manifests
+// to compute a blast radius: which named consumers are affected by which
+// changes, at what severity, and an aggregate seismic risk score.
+//
+// The metaphor throughout contractfault is seismic: a contract change is a
+// tremor, the affected consumers are the towns along the fault line, and the
+// risk score is the magnitude. This package produces the Report struct that is
+// serialized to JSON for the TypeScript viewer and rendered to text for CI.
+package impact
+
+import (
+	"sort"
+
+	"github.com/michaeldelali/contractfault/internal/analyze"
+	"github.com/michaeldelali/contractfault/internal/consumer"
+)
+
+// Report is the top-level, serializable output of the analyzer.
+type Report struct {
+	// Schema is a version tag so the TypeScript viewer can guard on shape.
+	Schema string `json:"schema"`
+	// Service is the analyzed service name.
+	Service string `json:"service"`
+	// FromVersion / ToVersion bracket the comparison.
+	FromVersion string `json:"fromVersion"`
