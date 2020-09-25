@@ -45,3 +45,14 @@ type Summary struct {
 	// Verdict is a plain-language summary ("stable", "shaken", "rupture").
 	Verdict string `json:"verdict"`
 }
+
+// ChangeImpact is a classified change plus the consumers it affects.
+type ChangeImpact struct {
+	analyze.Change
+	// Consumers lists the names of consumers impacted by this change.
+	Consumers []string `json:"consumers"`
+}
+
+// ConsumerImpact is one consumer's rollup across all changes.
+type ConsumerImpact struct {
+	Name        string `json:"name"`
