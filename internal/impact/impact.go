@@ -34,3 +34,14 @@ type Report struct {
 }
 
 // Summary holds aggregate metrics for the whole comparison.
+type Summary struct {
+	Breaking   int `json:"breaking"`
+	Additive   int `json:"additive"`
+	Behavioral int `json:"behavioral"`
+	// AffectedConsumers is the number of consumers with at least one impact.
+	AffectedConsumers int `json:"affectedConsumers"`
+	// Magnitude is the seismic risk score on a 0.0-10.0 scale.
+	Magnitude float64 `json:"magnitude"`
+	// Verdict is a plain-language summary ("stable", "shaken", "rupture").
+	Verdict string `json:"verdict"`
+}
