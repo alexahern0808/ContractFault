@@ -66,3 +66,14 @@ type ConsumerImpact struct {
 	Codes []string `json:"codes"`
 	// Score is this consumer's weighted contribution to the magnitude.
 	Score float64 `json:"score"`
+}
+
+// severityWeight maps a severity label to a magnitude weight.
+func severityWeight(sev string) float64 {
+	switch sev {
+	case "critical":
+		return 4.0
+	case "major":
+		return 2.5
+	case "minor":
+		return 1.0
