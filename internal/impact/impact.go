@@ -77,3 +77,14 @@ func severityWeight(sev string) float64 {
 		return 2.5
 	case "minor":
 		return 1.0
+	default:
+		return 0.25
+	}
+}
+
+// Build joins a diff against consumer manifests into a finished report.
+func Build(diff *analyze.Diff, consumers []consumer.Manifest) *Report {
+	r := &Report{
+		Schema:      "contractfault/v1",
+		Service:     diff.Service,
+		FromVersion: diff.FromVersion,
