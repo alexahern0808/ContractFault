@@ -121,3 +121,14 @@ func Build(diff *analyze.Diff, consumers []consumer.Manifest) *Report {
 			switch ch.Category {
 			case analyze.Breaking:
 				a.breaking++
+			case analyze.Additive:
+				a.additive++
+			case analyze.Behavioral:
+				a.behavioral++
+			}
+			a.codes[ch.Code] = true
+			contribution := base * float64(a.m.CriticalityWeight())
+			a.score += contribution
+			magnitude += contribution
+		}
+	}
