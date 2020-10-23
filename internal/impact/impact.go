@@ -154,3 +154,14 @@ func Build(diff *analyze.Diff, consumers []consumer.Manifest) *Report {
 			Additive:    a.additive,
 			Behavioral:  a.behavioral,
 			Codes:       codes,
+			Score:       round1(a.score),
+		})
+	}
+	sort.SliceStable(r.Consumers, func(i, j int) bool {
+		if r.Consumers[i].Score != r.Consumers[j].Score {
+			return r.Consumers[i].Score > r.Consumers[j].Score
+		}
+		return r.Consumers[i].Name < r.Consumers[j].Name
+	})
+
+	counts := diff.Counts()
