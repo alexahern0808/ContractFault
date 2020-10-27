@@ -165,3 +165,14 @@ func Build(diff *analyze.Diff, consumers []consumer.Manifest) *Report {
 	})
 
 	counts := diff.Counts()
+	r.Summary = Summary{
+		Breaking:          counts[analyze.Breaking],
+		Additive:          counts[analyze.Additive],
+		Behavioral:        counts[analyze.Behavioral],
+		AffectedConsumers: affectedCount,
+		Magnitude:         magnitudeScale(magnitude),
+	}
+	r.Summary.Verdict = verdict(r.Summary)
+	return r
+}
+
