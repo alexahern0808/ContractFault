@@ -198,3 +198,13 @@ func consumerAffected(ch analyze.Change, m consumer.Manifest) bool {
 	}
 	// Parameter-scoped changes only affect consumers that set that parameter,
 	// but a required-parameter addition affects every caller of the endpoint.
+	if ch.ParamKey != "" {
+		if ch.Code == "param.added" || ch.Code == "param.required.added" {
+			return m.UsesEndpoint(ch.Endpoint)
+		}
+		if m.ParamKeys()[ch.ParamKey] {
+			return true
+		}
+		return false
+	}
+	// Endpoint-scoped changes affect every consumer that calls the endpoint.
