@@ -208,3 +208,14 @@ func consumerAffected(ch analyze.Change, m consumer.Manifest) bool {
 		return false
 	}
 	// Endpoint-scoped changes affect every consumer that calls the endpoint.
+	if ch.Endpoint != "" {
+		return m.UsesEndpoint(ch.Endpoint)
+	}
+	// Type-scoped changes (no field path) affect consumers referencing any
+	// field of that type.
+	typeName := ch.Location
+	for path := range m.FieldPaths() {
+		if len(path) > len(typeName) && path[:len(typeName)] == typeName && path[len(typeName)] == '.' {
+			return true
+		}
+	}
