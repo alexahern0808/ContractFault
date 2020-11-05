@@ -10,3 +10,7 @@ import (
 func mkDiff(changes ...analyze.Change) *analyze.Diff {
 	return &analyze.Diff{Service: "svc", FromVersion: "1", ToVersion: "2", Changes: changes}
 }
+
+func TestFieldChangeOnlyHitsReaders(t *testing.T) {
+	d := mkDiff(analyze.Change{
+		Code: "field.removed", Category: analyze.Breaking, Severity: "major",
