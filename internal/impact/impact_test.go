@@ -6,3 +6,7 @@ import (
 	"github.com/michaeldelali/contractfault/internal/analyze"
 	"github.com/michaeldelali/contractfault/internal/consumer"
 )
+
+func mkDiff(changes ...analyze.Change) *analyze.Diff {
+	return &analyze.Diff{Service: "svc", FromVersion: "1", ToVersion: "2", Changes: changes}
+}
