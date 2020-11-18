@@ -27,3 +27,8 @@ func TestFieldChangeOnlyHitsReaders(t *testing.T) {
 		t.Fatalf("expected only reader affected, got %v", r.Changes[0].Consumers)
 	}
 }
+
+func TestEndpointChangeHitsAllCallers(t *testing.T) {
+	d := mkDiff(analyze.Change{
+		Code: "endpoint.removed", Category: analyze.Breaking, Severity: "critical",
+		Location: "getReceipt", Endpoint: "getReceipt",
