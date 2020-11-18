@@ -19,3 +19,7 @@ func TestFieldChangeOnlyHitsReaders(t *testing.T) {
 	consumers := []consumer.Manifest{
 		{Name: "reader", Criticality: "high", Uses: []consumer.Usage{
 			{Endpoint: "getOrder", ReadsFields: []string{"Order.couponCode"}}}},
+		{Name: "nonreader", Criticality: "high", Uses: []consumer.Usage{
+			{Endpoint: "getOrder", ReadsFields: []string{"Order.id"}}}},
+	}
+	r := Build(d, consumers)
