@@ -32,3 +32,7 @@ func TestEndpointChangeHitsAllCallers(t *testing.T) {
 	d := mkDiff(analyze.Change{
 		Code: "endpoint.removed", Category: analyze.Breaking, Severity: "critical",
 		Location: "getReceipt", Endpoint: "getReceipt",
+	})
+	consumers := []consumer.Manifest{
+		{Name: "a", Criticality: "low", Uses: []consumer.Usage{{Endpoint: "getReceipt"}}},
+		{Name: "b", Criticality: "low", Uses: []consumer.Usage{{Endpoint: "other"}}},
