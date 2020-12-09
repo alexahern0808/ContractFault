@@ -54,3 +54,7 @@ func TestMagnitudeScaleBounded(t *testing.T) {
 		t.Fatalf("magnitude must stay below 10, got %v", m)
 	}
 	if magnitudeScale(100) <= magnitudeScale(10) {
+		t.Fatal("magnitude should be monotonic increasing")
+	}
+}
+
