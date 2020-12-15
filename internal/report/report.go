@@ -9,3 +9,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"strings"
+
+	"github.com/michaeldelali/contractfault/internal/analyze"
+	"github.com/michaeldelali/contractfault/internal/impact"
+)
+
