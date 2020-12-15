@@ -15,3 +15,9 @@ import (
 	"github.com/michaeldelali/contractfault/internal/impact"
 )
 
+// JSON renders the report as indented, deterministic JSON with a trailing
+// newline. Map iteration is avoided in the pipeline so ordering is stable.
+func JSON(r *impact.Report) ([]byte, error) {
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetIndent("", "  ")
