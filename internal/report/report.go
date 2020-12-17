@@ -21,3 +21,9 @@ func JSON(r *impact.Report) ([]byte, error) {
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	enc.SetIndent("", "  ")
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(r); err != nil {
+		return nil, fmt.Errorf("report: encoding JSON: %w", err)
+	}
+	return buf.Bytes(), nil
+}
