@@ -39,3 +39,9 @@ func Text(r *impact.Report) string {
 	b.WriteString("\n")
 	fmt.Fprintf(&b, "breaking=%d  additive=%d  behavioral=%d  affected-consumers=%d\n\n",
 		r.Summary.Breaking, r.Summary.Additive, r.Summary.Behavioral, r.Summary.AffectedConsumers)
+
+	if len(r.Changes) == 0 {
+		b.WriteString("no changes detected; the fault line is quiet.\n")
+		return b.String()
+	}
+
