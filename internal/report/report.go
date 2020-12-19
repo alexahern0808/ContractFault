@@ -57,3 +57,9 @@ func Text(r *impact.Report) string {
 	}
 
 	b.WriteString("\nCONSUMER BLAST RADIUS\n")
+	for _, c := range r.Consumers {
+		total := c.Breaking + c.Additive + c.Behavioral
+		if total == 0 {
+			fmt.Fprintf(&b, "  %-18s %-6s  unaffected\n", c.Name, c.Criticality)
+			continue
+		}
