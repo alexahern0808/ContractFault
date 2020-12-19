@@ -27,3 +27,9 @@ func JSON(r *impact.Report) ([]byte, error) {
 	}
 	return buf.Bytes(), nil
 }
+
+// Text renders a human-readable seismograph report.
+func Text(r *impact.Report) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "contractfault seismic report\n")
+	fmt.Fprintf(&b, "service : %s\n", r.Service)
