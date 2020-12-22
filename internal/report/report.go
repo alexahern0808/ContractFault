@@ -74,3 +74,9 @@ func categoryMarker(cat analyze.Category) string {
 	switch cat {
 	case analyze.Breaking:
 		return "!!"
+	case analyze.Behavioral:
+		return "~~"
+	default:
+		return "++"
+	}
+}
