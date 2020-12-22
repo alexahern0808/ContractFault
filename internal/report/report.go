@@ -69,3 +69,8 @@ func Text(r *impact.Report) string {
 	return b.String()
 }
 
+// categoryMarker returns a compact ascii glyph for a change category.
+func categoryMarker(cat analyze.Category) string {
+	switch cat {
+	case analyze.Breaking:
+		return "!!"
