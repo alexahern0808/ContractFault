@@ -86,3 +86,9 @@ func seismograph(mag float64) string {
 	const width = 40
 	filled := int((mag / 10.0) * float64(width))
 	if filled > width {
+		filled = width
+	}
+	if filled < 0 {
+		filled = 0
+	}
+	return "[" + strings.Repeat("#", filled) + strings.Repeat("-", width-filled) + "]"
