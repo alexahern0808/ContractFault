@@ -92,3 +92,9 @@ func seismograph(mag float64) string {
 		filled = 0
 	}
 	return "[" + strings.Repeat("#", filled) + strings.Repeat("-", width-filled) + "]"
+}
+
+// ExitCode maps a report to a CI exit code:
+//
+//	0 = stable (only additive changes, no consumers broken)
+//	1 = shaken (behavioral changes or additive breaks a consumer)
