@@ -16,3 +16,7 @@ func TestExitCodeRupture(t *testing.T) {
 }
 
 func TestExitCodeShaken(t *testing.T) {
+	r := &impact.Report{Summary: impact.Summary{Behavioral: 1}}
+	if got := ExitCode(r, false); got != 1 {
+		t.Fatalf("behavioral should exit 1, got %d", got)
+	}
