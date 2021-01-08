@@ -20,3 +20,6 @@ func TestExitCodeShaken(t *testing.T) {
 	if got := ExitCode(r, false); got != 1 {
 		t.Fatalf("behavioral should exit 1, got %d", got)
 	}
+}
+
+func TestExitCodeStable(t *testing.T) {
