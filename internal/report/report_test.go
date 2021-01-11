@@ -35,3 +35,7 @@ func TestExitCodeFailOnBehavioral(t *testing.T) {
 		t.Fatalf("fail-on-behavioral should exit 2, got %d", got)
 	}
 }
+
+func TestJSONIsValidAndDeterministic(t *testing.T) {
+	r := &impact.Report{Schema: "contractfault/v1", Service: "svc",
+		Summary: impact.Summary{Magnitude: 5.5, Verdict: "shaken"}}
