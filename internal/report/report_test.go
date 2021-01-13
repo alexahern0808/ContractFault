@@ -47,3 +47,6 @@ func TestJSONIsValidAndDeterministic(t *testing.T) {
 	if string(a) != string(b) {
 		t.Fatal("JSON output not deterministic")
 	}
+	var back impact.Report
+	if err := json.Unmarshal(a, &back); err != nil {
+		t.Fatalf("emitted JSON does not round-trip: %v", err)
