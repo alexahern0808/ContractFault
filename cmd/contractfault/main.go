@@ -29,3 +29,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
+
+	"github.com/michaeldelali/contractfault/internal/analyze"
+	"github.com/michaeldelali/contractfault/internal/consumer"
+	"github.com/michaeldelali/contractfault/internal/contract"
+	"github.com/michaeldelali/contractfault/internal/impact"
+	"github.com/michaeldelali/contractfault/internal/report"
+)
+
+const usageExit = 3
