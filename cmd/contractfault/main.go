@@ -17,3 +17,15 @@
 //	-format         "text" (default) or "json"
 //	-out            write the report to a file instead of stdout
 //	-fail-on-behavioral   exit non-zero on behavioral-only shifts
+//	-quiet          suppress the report body, print only the verdict line
+//
+// Exit codes: 0 stable, 1 shaken (behavioral), 2 rupture (breaking), 3 usage
+// or IO error.
+package main
+
+import (
+	"errors"
+	"flag"
+	"fmt"
+	"os"
+	"path/filepath"
