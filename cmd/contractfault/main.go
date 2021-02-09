@@ -52,3 +52,15 @@ type options struct {
 }
 
 func main() {
+	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
+}
+
+// run is the testable core: it parses args, executes the pipeline and returns
+// the process exit code, writing report output to out and diagnostics to errw.
+func run(args []string, out, errw *os.File) int {
+	opts, err := parseFlags(args, errw)
+	if err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return 0
+		}
+		fmt.Fprintf(errw, "contractfault: %v\n", err)
