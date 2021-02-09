@@ -75,3 +75,15 @@ func run(args []string, out, errw *os.File) int {
 	newC, err := contract.Load(opts.newPath)
 	if err != nil {
 		fmt.Fprintf(errw, "contractfault: %v\n", err)
+		return usageExit
+	}
+
+	paths, err := resolveConsumerPaths(opts.consumers)
+	if err != nil {
+		fmt.Fprintf(errw, "contractfault: %v\n", err)
+		return usageExit
+	}
+	consumers, err := consumer.LoadAll(paths)
+	if err != nil {
+		fmt.Fprintf(errw, "contractfault: %v\n", err)
+		return usageExit
