@@ -110,3 +110,15 @@ func run(args []string, out, errw *os.File) int {
 		fmt.Fprintf(errw, "contractfault: unknown format %q (want text|json)\n", opts.format)
 		return usageExit
 	}
+
+	if opts.quiet {
+		line := fmt.Sprintf("%s %s->%s magnitude=%.1f verdict=%s breaking=%d\n",
+			rep.Service, rep.FromVersion, rep.ToVersion,
+			rep.Summary.Magnitude, rep.Summary.Verdict, rep.Summary.Breaking)
+		if opts.format == "json" {
+			// In quiet+json mode still emit full JSON to the file/stdout so the
+			// viewer has data, but keep stderr terse.
+			fmt.Fprint(errw, line)
+		} else {
+			rendered = []byte(line)
+		}
