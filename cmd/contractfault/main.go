@@ -87,3 +87,14 @@ func run(args []string, out, errw *os.File) int {
 	if err != nil {
 		fmt.Fprintf(errw, "contractfault: %v\n", err)
 		return usageExit
+	}
+
+	diff, err := analyze.Compare(oldC, newC)
+	if err != nil {
+		fmt.Fprintf(errw, "contractfault: %v\n", err)
+		return usageExit
+	}
+	rep := impact.Build(diff, consumers)
+
+	var rendered []byte
+	switch opts.format {
