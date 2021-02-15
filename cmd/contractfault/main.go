@@ -122,3 +122,14 @@ func run(args []string, out, errw *os.File) int {
 		} else {
 			rendered = []byte(line)
 		}
+	}
+
+	if opts.out != "" {
+		if err := os.WriteFile(opts.out, rendered, 0o644); err != nil {
+			fmt.Fprintf(errw, "contractfault: writing %s: %v\n", opts.out, err)
+			return usageExit
+		}
+	} else {
+		out.Write(rendered)
+	}
+
