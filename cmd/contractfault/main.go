@@ -133,3 +133,15 @@ func run(args []string, out, errw *os.File) int {
 		out.Write(rendered)
 	}
 
+	return report.ExitCode(rep, opts.failOnBehavioral)
+}
+
+func parseFlags(args []string, errw *os.File) (*options, error) {
+	fs := flag.NewFlagSet("contractfault", flag.ContinueOnError)
+	fs.SetOutput(errw)
+	opts := &options{}
+	fs.StringVar(&opts.oldPath, "old", "", "path to the previous contract version (required)")
+	fs.StringVar(&opts.newPath, "new", "", "path to the new contract version (required)")
+	fs.StringVar(&opts.consumers, "consumers", "", "glob or comma-separated list of consumer manifest paths")
+	fs.StringVar(&opts.format, "format", "text", "output format: text|json")
+	fs.StringVar(&opts.out, "out", "", "write report to file instead of stdout")
