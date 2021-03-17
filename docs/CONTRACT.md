@@ -234,6 +234,3 @@ breaks dominate without a long tail of `info` changes saturating the meter.
 | `3`  | usage / IO error (bad flags, unreadable input).     |
 
 `-fail-on-behavioral` promotes behavioral-only shifts from `1` to `2` for
-stricter pipelines.
-
-<!-- draft note 138 -->
