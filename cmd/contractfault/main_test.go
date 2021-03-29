@@ -43,3 +43,8 @@ func TestRunEndToEnd(t *testing.T) {
 	base := filepath.Join("..", "..", "examples")
 	oldC := filepath.Join(base, "contracts", "orders-v1.json")
 	newC := filepath.Join(base, "contracts", "orders-v2.json")
+	glob := filepath.Join(base, "consumers", "*.json")
+	out := filepath.Join(t.TempDir(), "out.json")
+
+	code := run([]string{"-old", oldC, "-new", newC, "-consumers", glob,
+		"-format", "json", "-out", out}, os.Stdout, os.Stderr)
