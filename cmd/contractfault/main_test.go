@@ -26,3 +26,9 @@ func TestResolveConsumerPathsGlob(t *testing.T) {
 
 func TestResolveConsumerPathsMissingGlob(t *testing.T) {
 	if _, err := resolveConsumerPaths(filepath.Join(t.TempDir(), "*.json")); err == nil {
+		t.Fatal("expected error for empty glob match")
+	}
+}
+
+func TestResolveConsumerPathsEmpty(t *testing.T) {
+	paths, err := resolveConsumerPaths("")
