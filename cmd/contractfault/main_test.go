@@ -48,3 +48,9 @@ func TestRunEndToEnd(t *testing.T) {
 
 	code := run([]string{"-old", oldC, "-new", newC, "-consumers", glob,
 		"-format", "json", "-out", out}, os.Stdout, os.Stderr)
+	if code != 2 {
+		t.Fatalf("expected rupture exit 2, got %d", code)
+	}
+	data, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
