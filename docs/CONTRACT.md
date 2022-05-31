@@ -236,4 +236,4 @@ breaks dominate without a long tail of `info` changes saturating the meter.
 `-fail-on-behavioral` promotes behavioral-only shifts from `1` to `2` for
 stricter pipelines.
 
-<!-- draft note 298 -->
+<!-- draft note 303 -->
