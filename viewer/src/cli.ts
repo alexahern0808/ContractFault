@@ -12,3 +12,10 @@
  */
 
 import { readFileSync, writeFileSync } from "node:fs";
+import { parseReport } from "./types.js";
+import { renderSvg, renderTerminal } from "./seismic.js";
+
+interface Args {
+  input: string;
+  svgOut?: string;
+  color: boolean;
