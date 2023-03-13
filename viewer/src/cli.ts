@@ -25,3 +25,10 @@ export function parseArgs(argv: string[]): Args {
   const args: Args = { input: "", color: true };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
+    if (a === "--svg") {
+      args.svgOut = argv[++i];
+    } else if (a === "--no-color") {
+      args.color = false;
+    } else if (!a.startsWith("-") && args.input === "") {
+      args.input = a;
+    } else {
