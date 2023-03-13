@@ -38,3 +38,10 @@ export function parseArgs(argv: string[]): Args {
   if (args.input === "") {
     throw new Error("usage: contractfault-viewer <report.json> [--svg out.svg] [--no-color]");
   }
+  return args;
+}
+
+export function exitCodeFor(report: ReturnType<typeof parseReport>): number {
+  if (report.summary.breaking > 0) return 2;
+  if (report.summary.behavioral > 0) return 1;
+  return 0;
