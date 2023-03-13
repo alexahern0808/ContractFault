@@ -19,3 +19,9 @@ interface Args {
   input: string;
   svgOut?: string;
   color: boolean;
+}
+
+export function parseArgs(argv: string[]): Args {
+  const args: Args = { input: "", color: true };
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
