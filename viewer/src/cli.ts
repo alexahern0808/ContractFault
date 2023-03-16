@@ -45,3 +45,9 @@ export function exitCodeFor(report: ReturnType<typeof parseReport>): number {
   if (report.summary.breaking > 0) return 2;
   if (report.summary.behavioral > 0) return 1;
   return 0;
+}
+
+function main(argv: string[]): number {
+  let args: Args;
+  try {
+    args = parseArgs(argv);
