@@ -58,3 +58,10 @@ function main(argv: string[]): number {
 
   let report;
   try {
+    const raw = readFileSync(args.input, "utf8");
+    report = parseReport(JSON.parse(raw));
+  } catch (err) {
+    process.stderr.write(`contractfault-viewer: ${(err as Error).message}\n`);
+    return 3;
+  }
+
