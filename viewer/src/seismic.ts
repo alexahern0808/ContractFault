@@ -19,3 +19,13 @@ const GREEN = "\x1b[32m";
 const CYAN = "\x1b[36m";
 const DIM = "\x1b[2m";
 
+interface RenderOptions {
+  /** color disables ANSI escapes when false (e.g. piping to a file). */
+  color: boolean;
+}
+
+function severityColor(sev: Severity): string {
+  switch (sev) {
+    case "critical":
+      return RED;
+    case "major":
