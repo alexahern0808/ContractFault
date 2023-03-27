@@ -29,3 +29,14 @@ function severityColor(sev: Severity): string {
     case "critical":
       return RED;
     case "major":
+      return YELLOW;
+    case "minor":
+      return CYAN;
+    default:
+      return DIM;
+  }
+}
+
+function categoryGlyph(cat: Category): string {
+  switch (cat) {
+    case "breaking":
