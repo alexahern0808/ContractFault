@@ -40,3 +40,14 @@ function severityColor(sev: Severity): string {
 function categoryGlyph(cat: Category): string {
   switch (cat) {
     case "breaking":
+      return "!!";
+    case "behavioral":
+      return "~~";
+    default:
+      return "++";
+  }
+}
+
+function paint(s: string, color: string, on: boolean): string {
+  return on ? `${color}${s}${RESET}` : s;
+}
