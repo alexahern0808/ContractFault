@@ -72,3 +72,14 @@ export function renderTerminal(report: Report, opts: RenderOptions = { color: tr
   const verdictColor = s.verdict === "rupture" ? RED : s.verdict === "shaken" ? YELLOW : GREEN;
   lines.push(
     `${paint("magnitude", BOLD, c)} ${s.magnitude.toFixed(1)}  ` +
+      paint(s.verdict.toUpperCase(), BOLD + verdictColor, c),
+  );
+  lines.push(paint(magnitudeBar(s.magnitude), verdictColor, c));
+  lines.push(
+    `${paint("breaking " + s.breaking, RED, c)}  ` +
+      `${paint("additive " + s.additive, GREEN, c)}  ` +
+      `${paint("behavioral " + s.behavioral, YELLOW, c)}  ` +
+      `affected ${s.affectedConsumers}`,
+  );
+  lines.push("");
+
