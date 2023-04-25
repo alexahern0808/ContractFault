@@ -137,3 +137,14 @@ export function renderSvg(report: Report): string {
   const consumers = report.consumers;
   const maxScore = Math.max(1, ...consumers.map((x) => x.score));
   const marginX = 60;
+  const usable = width - marginX * 2;
+  const step = consumers.length > 1 ? usable / (consumers.length - 1) : 0;
+  const faultY = 210;
+
+  const stations = consumers
+    .map((cons, i) => {
+      const x = marginX + (consumers.length > 1 ? step * i : usable / 2);
+      const total = cons.breaking + cons.additive + cons.behavioral;
+      const worst =
+        cons.breaking > 0 ? "breaking" : cons.behavioral > 0 ? "behavioral" : total > 0 ? "additive" : "quiet";
+      const color = SVG_COLORS[worst];
