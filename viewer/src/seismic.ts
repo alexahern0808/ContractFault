@@ -105,3 +105,13 @@ function renderConsumerLine(cons: ConsumerImpact, color: boolean): string {
   const total = cons.breaking + cons.additive + cons.behavioral;
   const name = cons.name.padEnd(20);
   if (total === 0) {
+    return `  ${name} ${paint("quiet", DIM, color)}`;
+  }
+  const bar = "▓".repeat(Math.min(20, Math.max(1, Math.round(cons.score / 2))));
+  const barColor = cons.breaking > 0 ? RED : cons.behavioral > 0 ? YELLOW : GREEN;
+  return (
+    `  ${name} ${paint(bar, barColor, color)} ` +
+    `${paint("score " + cons.score.toFixed(1), BOLD, color)} ` +
+    `(b:${cons.breaking} a:${cons.additive} v:${cons.behavioral}) ` +
+    `${paint(cons.criticality, DIM, color)}`
+  );
