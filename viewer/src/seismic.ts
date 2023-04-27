@@ -158,3 +158,14 @@ export function renderSvg(report: Report): string {
   const tracePoints: string[] = [];
   tracePoints.push(`${marginX - 40},${faultY}`);
   for (const st of stations) {
+    tracePoints.push(`${(st.x - 14).toFixed(1)},${faultY}`);
+    tracePoints.push(`${st.x.toFixed(1)},${(faultY - st.amp).toFixed(1)}`);
+    tracePoints.push(`${(st.x + 14).toFixed(1)},${(faultY + st.amp * 0.4).toFixed(1)}`);
+    tracePoints.push(`${(st.x + 18).toFixed(1)},${faultY}`);
+  }
+  tracePoints.push(`${width - marginX + 40},${faultY}`);
+
+  const verdictColor =
+    report.summary.verdict === "rupture"
+      ? SVG_COLORS.breaking
+      : report.summary.verdict === "shaken"
