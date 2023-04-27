@@ -169,3 +169,14 @@ export function renderSvg(report: Report): string {
     report.summary.verdict === "rupture"
       ? SVG_COLORS.breaking
       : report.summary.verdict === "shaken"
+        ? SVG_COLORS.behavioral
+        : SVG_COLORS.additive;
+
+  const stationSvg = stations
+    .map((st) => {
+      const label = st.cons.name;
+      return `
+    <g>
+      <circle cx="${st.x.toFixed(1)}" cy="${faultY}" r="${st.r.toFixed(1)}" fill="${st.color}" fill-opacity="0.85">
+        <animate attributeName="r" values="${st.r.toFixed(1)};${(st.r + 4).toFixed(1)};${st.r.toFixed(1)}" dur="${(2 + st.amp / 40).toFixed(2)}s" repeatCount="indefinite" />
+      </circle>
