@@ -26,3 +26,10 @@ export interface ChangeImpact {
   fieldPath?: string;
   paramKey?: string;
   detail: string;
+  migration: string;
+  consumers: string[];
+}
+
+export interface ConsumerImpact {
+  name: string;
+  team: string;
