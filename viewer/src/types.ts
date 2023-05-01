@@ -33,3 +33,10 @@ export interface ChangeImpact {
 export interface ConsumerImpact {
   name: string;
   team: string;
+  criticality: string;
+  breaking: number;
+  additive: number;
+  behavioral: number;
+  codes: string[];
+  score: number;
+}
