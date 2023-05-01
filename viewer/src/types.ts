@@ -13,3 +13,9 @@ export interface Summary {
   additive: number;
   behavioral: number;
   affectedConsumers: number;
+  magnitude: number;
+  verdict: Verdict;
+}
+
+export interface ChangeImpact {
+  code: string;
