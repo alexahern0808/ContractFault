@@ -60,3 +60,10 @@ export const SCHEMA_ID = "contractfault/v1";
  * rejected at the boundary instead of causing confusing failures later.
  */
 export function parseReport(value: unknown): Report {
+  if (typeof value !== "object" || value === null) {
+    throw new Error("report: expected a JSON object");
+  }
+  const r = value as Record<string, unknown>;
+  if (r.schema !== SCHEMA_ID) {
+    throw new Error(`report: unsupported schema ${String(r.schema)} (want ${SCHEMA_ID})`);
+  }
