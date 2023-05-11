@@ -41,3 +41,13 @@ function sample(overrides: Partial<Report> = {}): Report {
       },
     ],
     consumers: [
+      {
+        name: "analytics-etl",
+        team: "data",
+        criticality: "medium",
+        breaking: 1,
+        additive: 0,
+        behavioral: 0,
+        codes: ["endpoint.removed"],
+        score: 5,
+      },
