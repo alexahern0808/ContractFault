@@ -91,3 +91,12 @@ test("renderTerminal without color contains key facts and no escapes", () => {
   const out = renderTerminal(sample(), { color: false });
   assert.match(out, /orders-api/);
   assert.match(out, /magnitude 7\.2/);
+  assert.match(out, /RUPTURE/);
+  assert.match(out, /analytics-etl/);
+  assert.ok(!out.includes("\x1b["), "expected no ANSI escapes when color disabled");
+});
+
+test("renderTerminal with color emits ANSI escapes", () => {
+  const out = renderTerminal(sample(), { color: true });
+  assert.ok(out.includes("\x1b["), "expected ANSI escapes when color enabled");
+});
