@@ -81,3 +81,13 @@ test("parseReport rejects non-object", () => {
 
 test("magnitudeBar clamps and fills proportionally", () => {
   assert.equal(magnitudeBar(0, 10), "[----------]");
+  assert.equal(magnitudeBar(10, 10), "[##########]");
+  assert.equal(magnitudeBar(5, 10), "[#####-----]");
+  // Out-of-range values are clamped, never overflow the bar width.
+  assert.equal(magnitudeBar(99, 10), "[##########]");
+});
+
+test("renderTerminal without color contains key facts and no escapes", () => {
+  const out = renderTerminal(sample(), { color: false });
+  assert.match(out, /orders-api/);
+  assert.match(out, /magnitude 7\.2/);
