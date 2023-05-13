@@ -51,3 +51,13 @@ function sample(overrides: Partial<Report> = {}): Report {
         codes: ["endpoint.removed"],
         score: 5,
       },
+      {
+        name: "quiet-svc",
+        team: "misc",
+        criticality: "low",
+        breaking: 0,
+        additive: 0,
+        behavioral: 0,
+        codes: [],
+        score: 0,
+      },
