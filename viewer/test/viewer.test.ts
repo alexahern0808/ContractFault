@@ -100,3 +100,13 @@ test("renderTerminal with color emits ANSI escapes", () => {
   const out = renderTerminal(sample(), { color: true });
   assert.ok(out.includes("\x1b["), "expected ANSI escapes when color enabled");
 });
+
+test("renderSvg produces valid standalone SVG with a station per consumer", () => {
+  const svg = renderSvg(sample());
+  assert.match(svg, /^<\?xml/);
+  assert.match(svg, /<svg[^>]+width="720"/);
+  assert.match(svg, /analytics-etl/);
+  assert.match(svg, /quiet-svc/);
+  assert.match(svg, /<animate/); // animated
+  assert.ok(!svg.includes("http://") || svg.includes("http://www.w3.org/2000/svg"),
+    "no remote references other than the SVG namespace");
