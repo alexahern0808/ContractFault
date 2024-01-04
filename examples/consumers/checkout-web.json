@@ -1,1 +1,4 @@
 {
+  "name": "checkout-web",
+  "team": "storefront",
+  "criticality": "high",
