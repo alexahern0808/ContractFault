@@ -3,3 +3,6 @@
   "team": "data-platform",
   "criticality": "medium",
   "uses": [
+    {
+      "endpoint": "listOrders",
+      "params": ["query:limit"],
