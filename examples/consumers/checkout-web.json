@@ -10,3 +10,5 @@
     },
     {
       "endpoint": "getOrder",
+      "readsFields": ["Order.id", "Order.status", "Order.items", "Order.total", "Order.couponCode"]
+    },
