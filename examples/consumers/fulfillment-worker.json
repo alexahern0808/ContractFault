@@ -3,3 +3,6 @@
   "team": "logistics",
   "criticality": "high",
   "uses": [
+    {
+      "endpoint": "listOrders",
+      "params": ["query:status"],
