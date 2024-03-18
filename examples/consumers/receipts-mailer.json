@@ -3,3 +3,5 @@
   "team": "notifications",
   "criticality": "low",
   "uses": [
+    {
+      "endpoint": "getReceipt",
