@@ -8,3 +8,13 @@
         "amount": { "type": "integer", "required": true, "doc": "minor units" },
         "currency": { "type": "string", "required": true }
       }
+    },
+    "OrderStatus": {
+      "kind": "string",
+      "enum": ["pending", "paid", "shipped", "cancelled", "refunded"]
+    },
+    "LineItem": {
+      "kind": "object",
+      "fields": {
+        "sku": { "type": "string", "required": true },
+        "qty": { "type": "integer", "required": true },
