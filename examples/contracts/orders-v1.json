@@ -18,3 +18,13 @@
       "fields": {
         "sku": { "type": "string", "required": true },
         "qty": { "type": "integer", "required": true },
+        "price": { "type": "Money", "required": true }
+      }
+    },
+    "Order": {
+      "kind": "object",
+      "fields": {
+        "id": { "type": "string", "required": true },
+        "status": { "type": "OrderStatus", "required": true },
+        "items": { "type": "LineItem", "required": true, "array": true },
+        "total": { "type": "Money", "required": true },
