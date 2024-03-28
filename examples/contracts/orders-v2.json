@@ -1,0 +1,9 @@
+{
+  "service": "orders-api",
+  "version": "2.0.0",
+  "types": {
+    "Money": {
+      "kind": "object",
+      "fields": {
+        "amount": { "type": "integer", "required": true, "doc": "minor units" },
+        "currency": { "type": "string", "required": true },
