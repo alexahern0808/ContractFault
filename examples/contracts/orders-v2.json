@@ -7,3 +7,13 @@
       "fields": {
         "amount": { "type": "integer", "required": true, "doc": "minor units" },
         "currency": { "type": "string", "required": true },
+        "display": { "type": "string", "doc": "preformatted display string" }
+      }
+    },
+    "OrderStatus": {
+      "kind": "string",
+      "enum": ["pending", "authorized", "paid", "shipped", "delivered", "cancelled"]
+    },
+    "LineItem": {
+      "kind": "object",
+      "fields": {
