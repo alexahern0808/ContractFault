@@ -37,3 +37,12 @@
     "CreateOrderRequest": {
       "kind": "object",
       "fields": {
+        "items": { "type": "LineItem", "required": true, "array": true },
+        "couponCode": { "type": "string" },
+        "customerId": { "type": "string", "required": true }
+      }
+    },
+    "Error": {
+      "kind": "object",
+      "fields": {
+        "code": { "type": "string", "required": true },
