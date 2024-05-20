@@ -59,3 +59,21 @@
       "migration": "Update the request URL template to /orders/{id}.",
       "consumers": [
         "checkout-web"
+      ]
+    },
+    {
+      "code": "field.added",
+      "category": "breaking",
+      "severity": "major",
+      "location": "CreateOrderRequest.customerId",
+      "fieldPath": "CreateOrderRequest.customerId",
+      "detail": "field CreateOrderRequest.customerId added (required=true)",
+      "migration": "A required field CreateOrderRequest.customerId was added; producers must populate it.",
+      "consumers": []
+    },
+    {
+      "code": "field.added",
+      "category": "breaking",
+      "severity": "major",
+      "location": "Order.customerId",
+      "fieldPath": "Order.customerId",
