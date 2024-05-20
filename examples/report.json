@@ -77,3 +77,22 @@
       "severity": "major",
       "location": "Order.customerId",
       "fieldPath": "Order.customerId",
+      "detail": "field Order.customerId added (required=true)",
+      "migration": "A required field Order.customerId was added; producers must populate it.",
+      "consumers": []
+    },
+    {
+      "code": "field.removed",
+      "category": "breaking",
+      "severity": "major",
+      "location": "Order.couponCode",
+      "fieldPath": "Order.couponCode",
+      "detail": "field Order.couponCode removed",
+      "migration": "Stop reading Order.couponCode; it is no longer present.",
+      "consumers": [
+        "analytics-etl",
+        "checkout-web"
+      ]
+    },
+    {
+      "code": "param.required.added",
