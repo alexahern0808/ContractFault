@@ -96,3 +96,21 @@
     },
     {
       "code": "param.required.added",
+      "category": "breaking",
+      "severity": "major",
+      "location": "listOrders#query:limit",
+      "endpoint": "listOrders",
+      "paramKey": "query:limit",
+      "detail": "parameter query:limit became required",
+      "migration": "Always supply limit; requests without it will be rejected.",
+      "consumers": [
+        "analytics-etl",
+        "fulfillment-worker"
+      ]
+    },
+    {
+      "code": "type.enum.removed",
+      "category": "breaking",
+      "severity": "major",
+      "location": "OrderStatus",
+      "detail": "type OrderStatus dropped enum values refunded",
