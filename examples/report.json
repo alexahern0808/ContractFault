@@ -114,3 +114,22 @@
       "severity": "major",
       "location": "OrderStatus",
       "detail": "type OrderStatus dropped enum values refunded",
+      "migration": "Handle the removed enum values as invalid; they will no longer be produced.",
+      "consumers": []
+    },
+    {
+      "code": "type.enum.added",
+      "category": "behavioral",
+      "severity": "minor",
+      "location": "OrderStatus",
+      "detail": "type OrderStatus gained enum values authorized,delivered",
+      "migration": "Ensure consumers tolerate the new enum values.",
+      "consumers": []
+    },
+    {
+      "code": "field.added",
+      "category": "additive",
+      "severity": "info",
+      "location": "Error.traceId",
+      "fieldPath": "Error.traceId",
+      "detail": "field Error.traceId added (required=false)",
