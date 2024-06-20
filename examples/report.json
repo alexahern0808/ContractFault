@@ -170,3 +170,21 @@
       "consumers": [
         "analytics-etl",
         "fulfillment-worker"
+      ]
+    },
+    {
+      "code": "response.added",
+      "category": "additive",
+      "severity": "info",
+      "location": "createOrder#422",
+      "endpoint": "createOrder",
+      "detail": "response 422 (Error) added",
+      "migration": "Optionally handle the new status code.",
+      "consumers": [
+        "checkout-web"
+      ]
+    }
+  ],
+  "consumers": [
+    {
+      "name": "checkout-web",
