@@ -188,3 +188,21 @@
   "consumers": [
     {
       "name": "checkout-web",
+      "team": "storefront",
+      "criticality": "high",
+      "breaking": 3,
+      "additive": 1,
+      "behavioral": 1,
+      "codes": [
+        "endpoint.idempotency.changed",
+        "endpoint.method.changed",
+        "endpoint.path.changed",
+        "field.removed",
+        "response.added"
+      ],
+      "score": 35.3
+    },
+    {
+      "name": "analytics-etl",
+      "team": "data-platform",
+      "criticality": "medium",
