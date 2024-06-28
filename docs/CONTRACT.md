@@ -33,3 +33,14 @@ The loader uses strict decoding (`DisallowUnknownFields`): any unrecognized key
 is a hard error, so typos surface immediately rather than being silently
 ignored.
 
+### 1.1 Type
+
+```json
+"Order": {
+  "kind": "object",
+  "fields": {
+    "id":     { "type": "string", "required": true },
+    "status": { "type": "OrderStatus", "required": true }
+  }
+}
+```
