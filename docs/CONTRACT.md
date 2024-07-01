@@ -67,3 +67,14 @@ ignored.
 
 ```json
 {
+  "id": "getOrder",
+  "method": "GET",
+  "path": "/orders/{id}",
+  "idempotent": true,
+  "params": [ { "name": "id", "in": "path", "type": "string", "required": true } ],
+  "responses": { "200": "Order", "404": "Error" }
+}
+```
+
+| Field         | Type              | Meaning                                                                 |
+|---------------|-------------------|-------------------------------------------------------------------------|
