@@ -55,3 +55,15 @@ ignored.
 ### 1.2 Field
 
 | Field        | Type    | Meaning                                                                    |
+|--------------|---------|----------------------------------------------------------------------------|
+| `type`       | string  | Builtin scalar or the name of another `Type`.                              |
+| `required`   | boolean | Field must always be present.                                              |
+| `nullable`   | boolean | Field may carry an explicit `null`.                                        |
+| `array`      | boolean | Field is a homogeneous list of `type`.                                     |
+| `deprecated` | boolean | Field scheduled for removal.                                               |
+| `doc`        | string  | Short description, surfaced verbatim in migration hints.                   |
+
+### 1.3 Endpoint
+
+```json
+{
