@@ -101,3 +101,15 @@ reports the mutation, rather than a delete + add.
 | `required` | boolean         | Parameter must be supplied.                |
 | `enum`     | array of string | Permitted values.                          |
 
+A parameter's correlation key is `"{in}:{name}"`, e.g. `query:status`.
+
+---
+
+## 2. Consumer manifest
+
+A manifest declares which parts of the contract a named downstream service
+actually depends on, so impacts can be attributed precisely.
+
+```json
+{
+  "name": "checkout-web",
