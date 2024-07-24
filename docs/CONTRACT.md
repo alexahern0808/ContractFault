@@ -147,3 +147,14 @@ actually depends on, so impacts can be attributed precisely.
 ## 3. Change classification
 
 Every difference between two versions is classified into a **category** and a
+**severity**. Categories drive the CI exit code; severities drive ordering and
+the seismic magnitude.
+
+### 3.1 Categories
+
+- **breaking** — can cause existing consumers to fail (exit code 2).
+- **behavioral** — same shape, different runtime semantics (exit code 1).
+- **additive** — extends the surface without breaking callers (exit code 0).
+
+### 3.2 Severities
+
