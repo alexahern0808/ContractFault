@@ -90,3 +90,14 @@ ignored.
 Because `id` is the correlation key, you may freely rename a `path` or change a
 `method` and contractfault still recognizes it as the *same* operation and
 reports the mutation, rather than a delete + add.
+
+### 1.4 Param
+
+| Field      | Type            | Meaning                                    |
+|------------|-----------------|--------------------------------------------|
+| `name`     | string          | Parameter name.                            |
+| `in`       | string          | `path`, `query`, or `header`.              |
+| `type`     | string          | Scalar type of the value.                  |
+| `required` | boolean         | Parameter must be supplied.                |
+| `enum`     | array of string | Permitted values.                          |
+
