@@ -113,3 +113,14 @@ actually depends on, so impacts can be attributed precisely.
 ```json
 {
   "name": "checkout-web",
+  "team": "storefront",
+  "criticality": "high",
+  "uses": [
+    {
+      "endpoint": "createOrder",
+      "writesFields": ["CreateOrderRequest.items"],
+      "readsFields": ["Order.id", "Order.total"],
+      "params": ["query:status"]
+    }
+  ]
+}
