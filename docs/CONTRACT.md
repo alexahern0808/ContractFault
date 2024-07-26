@@ -193,3 +193,14 @@ the seismic magnitude.
 | `field.type.changed`            | breaking    | major    | A field's type changes.                              |
 | `field.arity.changed`           | breaking    | major    | A field flips between scalar and array.              |
 | `field.required.added`          | breaking    | major    | An existing field becomes required.                  |
+| `field.required.relaxed`        | behavioral  | minor    | An existing field becomes optional.                  |
+| `field.nullable.added`          | behavioral  | major    | A field becomes nullable.                            |
+| `field.nullable.removed`        | additive    | info     | A field is guaranteed non-null.                      |
+| `field.deprecated`              | behavioral  | minor    | A field newly marked deprecated.                     |
+
+### 3.4 Impact attribution rules
+
+- **Field-scoped** changes affect only consumers whose `readsFields` /
+  `writesFields` include that `Type.field` path.
+- **Type-scoped** changes (no field path) affect consumers that reference any
+  field of that type.
