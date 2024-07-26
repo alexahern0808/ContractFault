@@ -158,3 +158,15 @@ the seismic magnitude.
 
 ### 3.2 Severities
 
+`critical` > `major` > `minor` > `info`, with magnitude weights
+`4.0 / 2.5 / 1.0 / 0.25`.
+
+### 3.3 Rule table
+
+| Code                            | Category    | Severity | Trigger                                              |
+|---------------------------------|-------------|----------|------------------------------------------------------|
+| `endpoint.removed`              | breaking    | critical | An operation id disappears.                          |
+| `endpoint.method.changed`       | breaking    | critical | HTTP verb changes for an id.                         |
+| `endpoint.path.changed`         | breaking    | major    | Templated path changes for an id.                    |
+| `endpoint.requestType.changed`  | breaking    | major    | Request body type changes.                           |
+| `endpoint.added`                | additive    | info     | A new operation id appears.                          |
