@@ -170,3 +170,14 @@ the seismic magnitude.
 | `endpoint.path.changed`         | breaking    | major    | Templated path changes for an id.                    |
 | `endpoint.requestType.changed`  | breaking    | major    | Request body type changes.                           |
 | `endpoint.added`                | additive    | info     | A new operation id appears.                          |
+| `endpoint.deprecated`           | behavioral  | minor    | Operation newly marked deprecated.                   |
+| `endpoint.idempotency.changed`  | behavioral  | major    | Idempotency flag flips.                              |
+| `param.added` (required)        | breaking    | major    | A new required parameter.                            |
+| `param.added` (optional)        | additive    | info     | A new optional parameter.                            |
+| `param.removed` (was required)  | breaking    | major    | A required parameter is dropped.                     |
+| `param.removed` (was optional)  | additive    | minor    | An optional parameter is dropped.                    |
+| `param.required.added`          | breaking    | major    | Existing parameter becomes required.                 |
+| `param.required.relaxed`        | additive    | info     | Existing parameter becomes optional.                 |
+| `param.enum.removed`            | breaking    | major    | A parameter drops accepted enum values.              |
+| `response.removed`              | breaking    | major    | A documented status code disappears.                 |
+| `response.type.changed`         | breaking    | major    | A status code's body type changes.                   |
