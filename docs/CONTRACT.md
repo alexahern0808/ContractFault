@@ -235,3 +235,26 @@ breaks dominate without a long tail of `info` changes saturating the meter.
 
 `-fail-on-behavioral` promotes behavioral-only shifts from `1` to `2` for
 stricter pipelines.
+
+
+## Appendix - worked example walkthrough
+
+This appendix walks the shipped `orders-api` fault end to end, the way a new
+team member would run it on their first day.
+
+1. **Load both versions.** `orders-v1.json` (1.4.0) and `orders-v2.json`
+   (2.0.0) are decoded strictly; an unknown key anywhere in either file is a
+   hard error before any analysis starts.
+2. **The diff emits tremors.** Fifteen in the shipped example: eight breaking,
+   five additive, two behavioral. Each tremor carries its rule code, the
+   element it hit, and a suggested fix.
+3. **The join names the victims.** Four consumer manifests are loaded and
+   joined: `checkout-web` feels three breaking tremors (method flip, path
+   change, field removal), `analytics-etl` loses `getReceipt` entirely.
+4. **Magnitude compresses the story.** The raw energy lands at 8.5 on the
+   0-10 dial - verdict `rupture` - which is what the CI gate reads: exit 2.
+5. **Render.** The same JSON feeds the text seismograph and the TypeScript
+   viewer's SVG; both consume one schema, so the two views can never disagree.
+
+Work through it with `make demo` after cloning; the example takes under a
+second end to end.
