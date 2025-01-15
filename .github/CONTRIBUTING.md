@@ -14,3 +14,9 @@ below.
 - **Determinism is not negotiable.** Any report-producing change must keep
   output byte-identical for identical inputs. Add or extend a determinism test
   alongside your change.
+- **Every classification rule ships with a test.** New rule codes in the
+  analyzer land together with table rows in `docs/CONTRACT.md` and a test in
+  `internal/analyze`.
+
+## Local workflow
+
