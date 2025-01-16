@@ -20,3 +20,9 @@ below.
 
 ## Local workflow
 
+```bash
+make build    # Go CLI + TS viewer
+make test     # go test ./... + viewer npm test
+make vet      # go vet ./...
+make ci       # exactly what CI runs
+```
