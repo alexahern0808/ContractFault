@@ -26,3 +26,9 @@ make test     # go test ./... + viewer npm test
 make vet      # go vet ./...
 make ci       # exactly what CI runs
 ```
+
+Please make sure `make ci` is green before opening a pull request.
+
+## Pull requests
+
+- One topic per PR. A PR that fixes a rule and adds a flag is two PRs.
