@@ -32,3 +32,9 @@ Please make sure `make ci` is green before opening a pull request.
 ## Pull requests
 
 - One topic per PR. A PR that fixes a rule and adds a flag is two PRs.
+- Conventional commit messages (`feat:`, `fix:`, `docs:`, `test:`, `chore:`).
+- Update `CHANGELOG.md` under `[Unreleased]` as part of your change.
+- Include the example you ran when the change affects output formatting — the
+  expected output belongs in the PR description.
+
+## Reporting issues
