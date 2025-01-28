@@ -6,3 +6,8 @@ labels: ""
 assignees: ""
 ---
 
+**What happened?**
+
+A clear description of the wrong behavior: the rule code you got vs the rule
+code you expected.
+
