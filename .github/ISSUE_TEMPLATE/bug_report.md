@@ -21,3 +21,8 @@ contractfault -old old.json -new new.json -consumers "consumers/*.json" -format 
 ```
 
 **Version**
+
+The git revision (or release tag) you ran.
+
+**Expected vs actual**
+
