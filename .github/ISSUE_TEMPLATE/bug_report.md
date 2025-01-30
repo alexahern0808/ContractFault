@@ -16,3 +16,8 @@ code you expected.
 Attach (or inline) the two contract versions and the consumer manifests. Small
 files only — trim them to the endpoints/types involved.
 
+```text
+contractfault -old old.json -new new.json -consumers "consumers/*.json" -format json
+```
+
+**Version**
