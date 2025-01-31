@@ -8,3 +8,7 @@ assignees: ""
 
 **The contract change you want caught**
 
+Describe the real-world contract change (endpoint, type, field, enum, arity,
+idempotency...) that contractfault misses today.
+
+**Proposed rule code + category**
