@@ -12,3 +12,7 @@ Describe the real-world contract change (endpoint, type, field, enum, arity,
 idempotency...) that contractfault misses today.
 
 **Proposed rule code + category**
+
+Suggest the `code`, the category (breaking / additive / behavioral) and why.
+Rule additions must include the test case and the `docs/CONTRACT.md` row.
+
