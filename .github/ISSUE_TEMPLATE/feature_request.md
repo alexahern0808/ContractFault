@@ -16,3 +16,6 @@ idempotency...) that contractfault misses today.
 Suggest the `code`, the category (breaking / additive / behavioral) and why.
 Rule additions must include the test case and the `docs/CONTRACT.md` row.
 
+**Proposed CLI behavior**
+
+If this needs a flag: exact flag name, default value, and exit-code impact.
