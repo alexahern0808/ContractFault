@@ -5,3 +5,6 @@
 <!-- What does this PR change? Rule code, flag, renderer, docs... -->
 
 ## Why
+
+<!-- The contract change this catches, or the gap it closes. -->
+
