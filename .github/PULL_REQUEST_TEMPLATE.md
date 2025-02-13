@@ -8,3 +8,6 @@
 
 <!-- The contract change this catches, or the gap it closes. -->
 
+## Verification
+
+- [ ] `make ci` is green
