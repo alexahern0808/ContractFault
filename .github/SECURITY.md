@@ -11,3 +11,7 @@
 ## Reporting a vulnerability
 
 ContractFault is an offline analysis tool: it reads JSON contract and manifest
+files you point it at and writes reports. It makes no network calls, spawns no
+processes, and executes nothing from the documents it parses.
+
+If you still find a security-relevant issue — for example a parser crash that
