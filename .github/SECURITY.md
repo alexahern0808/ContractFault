@@ -19,3 +19,6 @@ could be weaponized in CI, path traversal via `-out`, or a manifest field that
 escapes its validation — please report it privately:
 
 - Email: `michaeldelali@users.noreply.github.com` (preferred, via GitHub contact)
+- Or open a GitHub security advisory on this repository.
+
+Please include the offending input files and the command line used. We aim to
