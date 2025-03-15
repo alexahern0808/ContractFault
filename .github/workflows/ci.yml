@@ -32,3 +32,9 @@ jobs:
           echo "analyzer exit code: $code"
           test "$code" -eq 2
 
+  viewer:
+    name: TypeScript viewer
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: viewer
