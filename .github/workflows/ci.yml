@@ -9,3 +9,9 @@ jobs:
   go:
     name: Go analyzer
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: Vet
