@@ -443,3 +443,26 @@ to code, tests and a docs section you can read today.
 
 MIT — see [LICENSE](LICENSE). Built as a seismic fault laboratory for API
 evolution. Change the ground carefully; someone lives downhill.
+
+
+---
+
+## Troubleshooting
+
+**The analyzer exits 3 on my files.** Exit 3 is a usage/IO error, not a
+verdict. The most common cause is a consumer glob that matched nothing -
+`-consumers "consumers/*.json"` resolves nothing if the working directory is
+not the repo root. Run it from the repo root or pass absolute paths.
+
+**My report says `stable` but CI failed.** Someone is passing
+`-fail-on-behavioral`; with that flag a behavioral-only shift is a hard
+failure by design. Drop the flag or accept the stricter gate.
+
+**Percentages on the leaderboard differ between two viewers.** They won't -
+both the Go CLI and the TypeScript viewer read the same stored report. If two
+runs disagree, you fed them different inputs; diff the JSON, not the views.
+
+**Unicode paths on Windows.** Quote the glob. The flag parser takes the
+pattern literally, so a shell-mangled glob arrives empty and every manifest
+silently drops out of the blast-radius join - which is exactly what you do
+not want.
