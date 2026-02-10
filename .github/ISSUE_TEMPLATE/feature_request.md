@@ -19,3 +19,10 @@ Rule additions must include the test case and the `docs/CONTRACT.md` row.
 **Proposed CLI behavior**
 
 If this needs a flag: exact flag name, default value, and exit-code impact.
+Remember the ground rules: Go side stays stdlib-only, output stays
+deterministic.
+
+**Alternatives considered**
+
+What you tried with the current flags (e.g. `-fail-on-behavioral`) and why it
+is not enough.
