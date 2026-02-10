@@ -22,3 +22,10 @@ escapes its validation — please report it privately:
 - Or open a GitHub security advisory on this repository.
 
 Please include the offending input files and the command line used. We aim to
+acknowledge reports within 7 days and ship a fix in the next release.
+
+## What we do not consider vulnerabilities
+
+- Reports produced from contract files you chose to feed the tool. Garbage in,
+  loud error out is the intended behavior.
+- Exit codes 0/1/2 semantics — they are documented, not exploitable state.
