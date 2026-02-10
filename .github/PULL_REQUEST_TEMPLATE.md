@@ -14,3 +14,8 @@
 - [ ] determinism: identical inputs still produce byte-identical reports
 - [ ] `CHANGELOG.md` updated under `[Unreleased]`
 - [ ] new rule codes ship with a test + a `docs/CONTRACT.md` row
+- [ ] example output included below (if output formatting changed)
+
+```text
+(paste trimmed expected-vs-actual output here)
+```
