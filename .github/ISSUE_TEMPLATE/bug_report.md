@@ -26,3 +26,12 @@ The git revision (or release tag) you ran.
 
 **Expected vs actual**
 
+- Expected magnitude / verdict / affected consumers:
+- Actual output (trimmed):
+
+---
+
+*Note: classification disputes usually turn out to be documented behavior —
+check the rule table in `docs/CONTRACT.md#33-rule-table` first. If the table
+and the code disagree, the code is wrong; if you disagree with the table, open
+a `feature_request` arguing the rule, not a bug.*
