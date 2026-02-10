@@ -38,3 +38,13 @@ Please make sure `make ci` is green before opening a pull request.
   expected output belongs in the PR description.
 
 ## Reporting issues
+
+Open a bug report with the two contract versions and the consumer manifests
+involved (trim them if needed — small reproducers are read, big ones are not).
+For classification disputes, quote the rule code you expected versus the code
+you got; that turns a debate into a bug.
+
+## Code of conduct
+
+The Contributor Covenant applies to everyone participating in this project —
+see [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
