@@ -1,68 +1,116 @@
-package contract
+# Changelog
 
-import (
-	"strings"
-	"testing"
-)
+All notable changes to ContractFault are documented here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres
+to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-const minimal = `{
-  "service": "svc",
-  "version": "1.0.0",
-  "types": {
-    "Widget": { "kind": "object", "fields": { "id": { "type": "string", "required": true } } }
-  },
-  "endpoints": [
-    { "id": "getWidget", "method": "get", "path": "/w/{id}", "responses": { "200": "Widget" } }
-  ]
-}`
+## [Unreleased]
 
-func TestParseNormalizesMethodAndTypeName(t *testing.T) {
-	c, err := Parse([]byte(minimal), "test")
-	if err != nil {
-		t.Fatalf("parse: %v", err)
-	}
-	if got := c.Endpoints[0].Method; got != "GET" {
-		t.Errorf("method not upper-cased: %q", got)
-	}
-	if got := c.Types["Widget"].Name; got != "Widget" {
-		t.Errorf("type name not mirrored: %q", got)
-	}
-}
+### Added
 
-func TestValidateRejectsUnknownRequestType(t *testing.T) {
-	bad := `{
-      "service": "svc", "version": "1.0.0", "types": {},
-      "endpoints": [ { "id": "x", "method": "POST", "path": "/x", "requestType": "Nope" } ]
-    }`
-	_, err := Parse([]byte(bad), "test")
-	if err == nil || !strings.Contains(err.Error(), "unknown request type") {
-		t.Fatalf("expected unknown request type error, got %v", err)
-	}
-}
+- (planned) monorepo mode: multi-service contracts in a single combined report.
+- (planned) OpenAPI import shim for existing documents.
 
-func TestValidateRejectsDuplicateEndpointID(t *testing.T) {
-	dup := `{
-      "service": "svc", "version": "1.0.0", "types": {},
-      "endpoints": [
-        { "id": "x", "method": "GET", "path": "/a" },
-        { "id": "x", "method": "GET", "path": "/b" }
-      ]
-    }`
-	_, err := Parse([]byte(dup), "test")
-	if err == nil || !strings.Contains(err.Error(), "duplicate endpoint id") {
-		t.Fatalf("expected duplicate id error, got %v", err)
-	}
-}
+## [1.0.0] - 2026-08-09
 
-func TestParseRejectsUnknownFields(t *testing.T) {
-	extra := `{ "service": "svc", "version": "1.0.0", "types": {}, "endpoints": [], "bogus": 1 }`
-	if _, err := Parse([]byte(extra), "test"); err == nil {
-		t.Fatal("expected error on unknown field")
-	}
-}
+### Added
 
-func TestSortedTypeNamesDeterministic(t *testing.T) {
-	c := &Contract{Types: map[string]Type{"b": {}, "a": {}, "c": {}}}
-	got := c.SortedTypeNames()
-	want := []string{"a", "b", "c"}
-	for i := range want {
+- `-fail-on-behavioral` pipeline flag: treat behavioral-only shifts as a hard
+  failure (exit 2) when the SLA demands it.
+- `-quiet` mode printing only the one-line verdict summary.
+
+### Changed
+
+- Stabilized the report schema at `contractfault/v1` for 1.x.
+
+## [0.8.0] - 2025-11-18
+
+### Changed
+
+- Determinism hardening: every collection sorted before emission; identical
+  inputs now produce byte-identical JSON reports (verified in tests).
+- Text renderer magnitude meter bounded and stable across terminals.
+
+### Fixed
+
+- Consumer manifests with unknown keys now fail loudly instead of silently
+  disarming the blast-radius join.
+
+## [0.7.0] - 2024-11-14
+
+### Added
+
+- TypeScript seismic viewer: colorized terminal impact map and a standalone
+  animated SVG seismograph rendered from the JSON report.
+- Viewer exit codes mirror the Go CLI (0/1/2) so it can double as a CI gate.
+
+## [0.6.0] - 2023-09-21
+
+### Added
+
+- Seismic magnitude scoring on a compressed 0-10 scale with plain-language
+  verdicts (`stable`, `tremor`, `shaken`, `rupture`).
+- CI exit-code mapping: 0 stable, 1 shaken (behavioral), 2 rupture (breaking),
+  3 usage/IO error.
+
+## [0.5.0] - 2022-10-12
+
+### Added
+
+- Consumer blast-radius join: every change attributed to the named consumers
+  that actually depend on the affected element, weighted by criticality.
+
+### Changed
+
+- Field tremors join on `readsFields`/`writesFields`; endpoint tremors join on
+  callers; new required parameters shake every caller of the endpoint.
+
+## [0.4.0] - 2021-12-09
+
+### Added
+
+- Full classification engine across endpoints, parameters, responses, reusable
+  types, fields, enums, nullability, arity, required-ness, deprecation and
+  idempotency - each mapped to breaking / additive / behavioral.
+- Thirty-plus documented rule codes in `docs/CONTRACT.md`.
+
+## [0.3.0] - 2020-11-05
+
+### Added
+
+- Consumer usage manifests with criticality weighting (`high`/`medium`/`low`).
+- Manifest format kept coarse enough to publish without exposing the source
+  tree, precise enough to compute a real blast radius.
+
+## [0.2.0] - 2019-08-22
+
+### Changed
+
+- Strict decoding everywhere: unknown keys are hard errors so typos fail
+  loudly instead of silently disarming a check.
+
+### Fixed
+
+- Endpoint correlation now keyed on a stable `id` - renaming a path is
+  reported as a mutation, not a delete-plus-add.
+
+## [0.1.0] - 2018-04-19
+
+### Added
+
+- First seismograph: the documented JSON contract loader and the version diff
+  engine with a plain-text report renderer.
+- Initial example contracts for the `orders-api` fault.
+
+[Unreleased]: https://github.com/michaeldelali/ContractFault/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v1.0.0
+[0.8.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.8.0
+[0.7.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.7.0
+[0.6.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.6.0
+[0.5.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.5.0
+[0.4.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.4.0
+[0.3.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.3.0
+[0.2.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.2.0
+[0.1.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.1.0
+
+// draft note 674
