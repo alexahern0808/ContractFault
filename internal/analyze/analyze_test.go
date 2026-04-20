@@ -1,129 +1,116 @@
-package analyze
+# Changelog
 
-import (
-	"testing"
+All notable changes to ContractFault are documented here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres
+to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-	"github.com/michaeldelali/contractfault/internal/contract"
-)
+## [Unreleased]
 
-// build constructs a minimal contract from endpoints and types for tests.
-func build(version string, types map[string]contract.Type, eps ...contract.Endpoint) *contract.Contract {
-	c := &contract.Contract{Service: "svc", Version: version, Types: types, Endpoints: eps}
-	return c
-}
+### Added
 
-func find(d *Diff, code string) *Change {
-	for i := range d.Changes {
-		if d.Changes[i].Code == code {
-			return &d.Changes[i]
-		}
-	}
-	return nil
-}
+- (planned) monorepo mode: multi-service contracts in a single combined report.
+- (planned) OpenAPI import shim for existing documents.
 
-func TestEndpointRemovedIsBreakingCritical(t *testing.T) {
-	oldC := build("1", nil, contract.Endpoint{ID: "a", Method: "GET", Path: "/a"})
-	newC := build("2", nil)
-	d, err := Compare(oldC, newC)
-	if err != nil {
-		t.Fatal(err)
-	}
-	c := find(d, "endpoint.removed")
-	if c == nil {
-		t.Fatal("missing endpoint.removed")
-	}
-	if c.Category != Breaking || c.Severity != "critical" {
-		t.Errorf("got %s/%s", c.Category, c.Severity)
-	}
-}
+## [1.0.0] - 2026-08-09
 
-func TestEndpointAddedIsAdditive(t *testing.T) {
-	oldC := build("1", nil)
-	newC := build("2", nil, contract.Endpoint{ID: "a", Method: "GET", Path: "/a"})
-	d, _ := Compare(oldC, newC)
-	if c := find(d, "endpoint.added"); c == nil || c.Category != Additive {
-		t.Fatalf("endpoint.added not additive: %+v", c)
-	}
-}
+### Added
 
-func TestRequiredFieldAddedIsBreaking(t *testing.T) {
-	oldT := map[string]contract.Type{"T": {Kind: "object", Fields: map[string]contract.Field{}}}
-	newT := map[string]contract.Type{"T": {Kind: "object", Fields: map[string]contract.Field{
-		"x": {TypeRef: "string", Required: true},
-	}}}
-	d, _ := Compare(build("1", oldT), build("2", newT))
-	c := find(d, "field.added")
-	if c == nil || c.Category != Breaking {
-		t.Fatalf("required field.added should be breaking: %+v", c)
-	}
-}
+- `-fail-on-behavioral` pipeline flag: treat behavioral-only shifts as a hard
+  failure (exit 2) when the SLA demands it.
+- `-quiet` mode printing only the one-line verdict summary.
 
-func TestOptionalFieldAddedIsAdditive(t *testing.T) {
-	oldT := map[string]contract.Type{"T": {Kind: "object", Fields: map[string]contract.Field{}}}
-	newT := map[string]contract.Type{"T": {Kind: "object", Fields: map[string]contract.Field{
-		"x": {TypeRef: "string"},
-	}}}
-	d, _ := Compare(build("1", oldT), build("2", newT))
-	if c := find(d, "field.added"); c == nil || c.Category != Additive {
-		t.Fatalf("optional field.added should be additive: %+v", c)
-	}
-}
+### Changed
 
-func TestNullableAddedIsBehavioral(t *testing.T) {
-	oldT := map[string]contract.Type{"T": {Kind: "object", Fields: map[string]contract.Field{
-		"x": {TypeRef: "string"},
-	}}}
-	newT := map[string]contract.Type{"T": {Kind: "object", Fields: map[string]contract.Field{
-		"x": {TypeRef: "string", Nullable: true},
-	}}}
-	d, _ := Compare(build("1", oldT), build("2", newT))
-	if c := find(d, "field.nullable.added"); c == nil || c.Category != Behavioral {
-		t.Fatalf("nullable added should be behavioral: %+v", c)
-	}
-}
+- Stabilized the report schema at `contractfault/v1` for 1.x.
 
-func TestEnumRemovedIsBreaking(t *testing.T) {
-	oldT := map[string]contract.Type{"S": {Kind: "string", Enum: []string{"a", "b", "c"}}}
-	newT := map[string]contract.Type{"S": {Kind: "string", Enum: []string{"a", "b"}}}
-	d, _ := Compare(build("1", oldT), build("2", newT))
-	c := find(d, "type.enum.removed")
-	if c == nil || c.Category != Breaking {
-		t.Fatalf("enum removal should be breaking: %+v", c)
-	}
-}
+## [0.8.0] - 2025-11-18
 
-func TestMethodChangeIsBreaking(t *testing.T) {
-	oldC := build("1", nil, contract.Endpoint{ID: "a", Method: "POST", Path: "/a"})
-	newC := build("2", nil, contract.Endpoint{ID: "a", Method: "DELETE", Path: "/a"})
-	d, _ := Compare(oldC, newC)
-	if c := find(d, "endpoint.method.changed"); c == nil || c.Category != Breaking {
-		t.Fatalf("method change should be breaking: %+v", c)
-	}
-}
+### Changed
 
-func TestIdempotencyChangeIsBehavioral(t *testing.T) {
-	oldC := build("1", nil, contract.Endpoint{ID: "a", Method: "POST", Path: "/a", Idempotent: true})
-	newC := build("2", nil, contract.Endpoint{ID: "a", Method: "POST", Path: "/a", Idempotent: false})
-	d, _ := Compare(oldC, newC)
-	if c := find(d, "endpoint.idempotency.changed"); c == nil || c.Category != Behavioral {
-		t.Fatalf("idempotency change should be behavioral: %+v", c)
-	}
-}
+- Determinism hardening: every collection sorted before emission; identical
+  inputs now produce byte-identical JSON reports (verified in tests).
+- Text renderer magnitude meter bounded and stable across terminals.
 
-func TestRequiredParamAddedIsBreaking(t *testing.T) {
-	oldC := build("1", nil, contract.Endpoint{ID: "a", Method: "GET", Path: "/a"})
-	newC := build("2", nil, contract.Endpoint{ID: "a", Method: "GET", Path: "/a",
-		Params: []contract.Param{{Name: "q", In: "query", TypeRef: "string", Required: true}}})
-	d, _ := Compare(oldC, newC)
-	if c := find(d, "param.added"); c == nil || c.Category != Breaking {
-		t.Fatalf("required param add should be breaking: %+v", c)
-	}
-}
+### Fixed
 
-func TestServiceMismatchErrors(t *testing.T) {
-	a := &contract.Contract{Service: "x", Version: "1"}
-	b := &contract.Contract{Service: "y", Version: "2"}
-	if _, err := Compare(a, b); err == nil {
-		t.Fatal("expected service mismatch error")
-	}
-}
+- Consumer manifests with unknown keys now fail loudly instead of silently
+  disarming the blast-radius join.
+
+## [0.7.0] - 2024-11-14
+
+### Added
+
+- TypeScript seismic viewer: colorized terminal impact map and a standalone
+  animated SVG seismograph rendered from the JSON report.
+- Viewer exit codes mirror the Go CLI (0/1/2) so it can double as a CI gate.
+
+## [0.6.0] - 2023-09-21
+
+### Added
+
+- Seismic magnitude scoring on a compressed 0-10 scale with plain-language
+  verdicts (`stable`, `tremor`, `shaken`, `rupture`).
+- CI exit-code mapping: 0 stable, 1 shaken (behavioral), 2 rupture (breaking),
+  3 usage/IO error.
+
+## [0.5.0] - 2022-10-12
+
+### Added
+
+- Consumer blast-radius join: every change attributed to the named consumers
+  that actually depend on the affected element, weighted by criticality.
+
+### Changed
+
+- Field tremors join on `readsFields`/`writesFields`; endpoint tremors join on
+  callers; new required parameters shake every caller of the endpoint.
+
+## [0.4.0] - 2021-12-09
+
+### Added
+
+- Full classification engine across endpoints, parameters, responses, reusable
+  types, fields, enums, nullability, arity, required-ness, deprecation and
+  idempotency - each mapped to breaking / additive / behavioral.
+- Thirty-plus documented rule codes in `docs/CONTRACT.md`.
+
+## [0.3.0] - 2020-11-05
+
+### Added
+
+- Consumer usage manifests with criticality weighting (`high`/`medium`/`low`).
+- Manifest format kept coarse enough to publish without exposing the source
+  tree, precise enough to compute a real blast radius.
+
+## [0.2.0] - 2019-08-22
+
+### Changed
+
+- Strict decoding everywhere: unknown keys are hard errors so typos fail
+  loudly instead of silently disarming a check.
+
+### Fixed
+
+- Endpoint correlation now keyed on a stable `id` - renaming a path is
+  reported as a mutation, not a delete-plus-add.
+
+## [0.1.0] - 2018-04-19
+
+### Added
+
+- First seismograph: the documented JSON contract loader and the version diff
+  engine with a plain-text report renderer.
+- Initial example contracts for the `orders-api` fault.
+
+[Unreleased]: https://github.com/michaeldelali/ContractFault/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v1.0.0
+[0.8.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.8.0
+[0.7.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.7.0
+[0.6.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.6.0
+[0.5.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.5.0
+[0.4.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.4.0
+[0.3.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.3.0
+[0.2.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.2.0
+[0.1.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.1.0
+
+// draft note 695
