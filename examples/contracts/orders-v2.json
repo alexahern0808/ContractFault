@@ -1,116 +1,96 @@
-# Changelog
-
-All notable changes to ContractFault are documented here. The format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres
-to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [Unreleased]
-
-### Added
-
-- (planned) monorepo mode: multi-service contracts in a single combined report.
-- (planned) OpenAPI import shim for existing documents.
-
-## [1.0.0] - 2026-08-09
-
-### Added
-
-- `-fail-on-behavioral` pipeline flag: treat behavioral-only shifts as a hard
-  failure (exit 2) when the SLA demands it.
-- `-quiet` mode printing only the one-line verdict summary.
-
-### Changed
-
-- Stabilized the report schema at `contractfault/v1` for 1.x.
-
-## [0.8.0] - 2025-11-18
-
-### Changed
-
-- Determinism hardening: every collection sorted before emission; identical
-  inputs now produce byte-identical JSON reports (verified in tests).
-- Text renderer magnitude meter bounded and stable across terminals.
-
-### Fixed
-
-- Consumer manifests with unknown keys now fail loudly instead of silently
-  disarming the blast-radius join.
-
-## [0.7.0] - 2024-11-14
-
-### Added
-
-- TypeScript seismic viewer: colorized terminal impact map and a standalone
-  animated SVG seismograph rendered from the JSON report.
-- Viewer exit codes mirror the Go CLI (0/1/2) so it can double as a CI gate.
-
-## [0.6.0] - 2023-09-21
-
-### Added
-
-- Seismic magnitude scoring on a compressed 0-10 scale with plain-language
-  verdicts (`stable`, `tremor`, `shaken`, `rupture`).
-- CI exit-code mapping: 0 stable, 1 shaken (behavioral), 2 rupture (breaking),
-  3 usage/IO error.
-
-## [0.5.0] - 2022-10-12
-
-### Added
-
-- Consumer blast-radius join: every change attributed to the named consumers
-  that actually depend on the affected element, weighted by criticality.
-
-### Changed
-
-- Field tremors join on `readsFields`/`writesFields`; endpoint tremors join on
-  callers; new required parameters shake every caller of the endpoint.
-
-## [0.4.0] - 2021-12-09
-
-### Added
-
-- Full classification engine across endpoints, parameters, responses, reusable
-  types, fields, enums, nullability, arity, required-ness, deprecation and
-  idempotency - each mapped to breaking / additive / behavioral.
-- Thirty-plus documented rule codes in `docs/CONTRACT.md`.
-
-## [0.3.0] - 2020-11-05
-
-### Added
-
-- Consumer usage manifests with criticality weighting (`high`/`medium`/`low`).
-- Manifest format kept coarse enough to publish without exposing the source
-  tree, precise enough to compute a real blast radius.
-
-## [0.2.0] - 2019-08-22
-
-### Changed
-
-- Strict decoding everywhere: unknown keys are hard errors so typos fail
-  loudly instead of silently disarming a check.
-
-### Fixed
-
-- Endpoint correlation now keyed on a stable `id` - renaming a path is
-  reported as a mutation, not a delete-plus-add.
-
-## [0.1.0] - 2018-04-19
-
-### Added
-
-- First seismograph: the documented JSON contract loader and the version diff
-  engine with a plain-text report renderer.
-- Initial example contracts for the `orders-api` fault.
-
-[Unreleased]: https://github.com/michaeldelali/ContractFault/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v1.0.0
-[0.8.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.8.0
-[0.7.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.7.0
-[0.6.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.6.0
-[0.5.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.5.0
-[0.4.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.4.0
-[0.3.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.3.0
-[0.2.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.2.0
-[0.1.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.1.0
-
-// draft note 664
+{
+  "service": "orders-api",
+  "version": "2.0.0",
+  "types": {
+    "Money": {
+      "kind": "object",
+      "fields": {
+        "amount": { "type": "integer", "required": true, "doc": "minor units" },
+        "currency": { "type": "string", "required": true },
+        "display": { "type": "string", "doc": "preformatted display string" }
+      }
+    },
+    "OrderStatus": {
+      "kind": "string",
+      "enum": ["pending", "authorized", "paid", "shipped", "delivered", "cancelled"]
+    },
+    "LineItem": {
+      "kind": "object",
+      "fields": {
+        "sku": { "type": "string", "required": true },
+        "qty": { "type": "integer", "required": true },
+        "price": { "type": "Money", "required": true },
+        "giftWrapped": { "type": "boolean" }
+      }
+    },
+    "Order": {
+      "kind": "object",
+      "fields": {
+        "id": { "type": "string", "required": true },
+        "status": { "type": "OrderStatus", "required": true },
+        "items": { "type": "LineItem", "required": true, "array": true },
+        "total": { "type": "Money", "required": true },
+        "note": { "type": "string", "nullable": true, "doc": "free-form customer note" },
+        "customerId": { "type": "string", "required": true, "doc": "owning customer" }
+      }
+    },
+    "CreateOrderRequest": {
+      "kind": "object",
+      "fields": {
+        "items": { "type": "LineItem", "required": true, "array": true },
+        "couponCode": { "type": "string" },
+        "customerId": { "type": "string", "required": true }
+      }
+    },
+    "Error": {
+      "kind": "object",
+      "fields": {
+        "code": { "type": "string", "required": true },
+        "message": { "type": "string", "required": true },
+        "traceId": { "type": "string" }
+      }
+    }
+  },
+  "endpoints": [
+    {
+      "id": "listOrders",
+      "method": "GET",
+      "path": "/orders",
+      "idempotent": true,
+      "params": [
+        { "name": "status", "in": "query", "type": "OrderStatus" },
+        { "name": "limit", "in": "query", "type": "integer", "required": true },
+        { "name": "cursor", "in": "query", "type": "string" }
+      ],
+      "responses": { "200": "Order", "400": "Error" }
+    },
+    {
+      "id": "getOrder",
+      "method": "GET",
+      "path": "/orders/{id}",
+      "idempotent": true,
+      "params": [
+        { "name": "id", "in": "path", "type": "string", "required": true }
+      ],
+      "responses": { "200": "Order", "404": "Error" }
+    },
+    {
+      "id": "createOrder",
+      "method": "POST",
+      "path": "/orders",
+      "idempotent": false,
+      "requestType": "CreateOrderRequest",
+      "responses": { "201": "Order", "400": "Error", "422": "Error" }
+    },
+    {
+      "id": "cancelOrder",
+      "method": "DELETE",
+      "path": "/orders/{id}",
+      "idempotent": false,
+      "params": [
+        { "name": "id", "in": "path", "type": "string", "required": true }
+      ],
+      "responses": { "200": "Order", "404": "Error", "409": "Error" }
+    }
+  ]
+}
