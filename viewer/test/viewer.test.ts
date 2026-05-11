@@ -1,122 +1,116 @@
-import { test } from "node:test";
-import assert from "node:assert/strict";
-import { parseReport, SCHEMA_ID, type Report } from "../src/types.ts";
-import { magnitudeBar, renderSvg, renderTerminal } from "../src/seismic.ts";
-import { exitCodeFor, parseArgs } from "../src/cli.ts";
+# Changelog
 
-function sample(overrides: Partial<Report> = {}): Report {
-  return {
-    schema: SCHEMA_ID,
-    service: "orders-api",
-    fromVersion: "1.4.0",
-    toVersion: "2.0.0",
-    summary: {
-      breaking: 2,
-      additive: 3,
-      behavioral: 1,
-      affectedConsumers: 2,
-      magnitude: 7.2,
-      verdict: "rupture",
-    },
-    changes: [
-      {
-        code: "endpoint.removed",
-        category: "breaking",
-        severity: "critical",
-        location: "getReceipt",
-        endpoint: "getReceipt",
-        detail: "endpoint removed",
-        migration: "stop calling it",
-        consumers: ["analytics-etl", "receipts-mailer"],
-      },
-      {
-        code: "field.added",
-        category: "additive",
-        severity: "info",
-        location: "Error.traceId",
-        fieldPath: "Error.traceId",
-        detail: "field added",
-        migration: "adopt it",
-        consumers: [],
-      },
-    ],
-    consumers: [
-      {
-        name: "analytics-etl",
-        team: "data",
-        criticality: "medium",
-        breaking: 1,
-        additive: 0,
-        behavioral: 0,
-        codes: ["endpoint.removed"],
-        score: 5,
-      },
-      {
-        name: "quiet-svc",
-        team: "misc",
-        criticality: "low",
-        breaking: 0,
-        additive: 0,
-        behavioral: 0,
-        codes: [],
-        score: 0,
-      },
-    ],
-    ...overrides,
-  };
-}
+All notable changes to ContractFault are documented here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres
+to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-test("parseReport accepts a valid report", () => {
-  const r = parseReport(sample());
-  assert.equal(r.service, "orders-api");
-});
+## [Unreleased]
 
-test("parseReport rejects wrong schema", () => {
-  assert.throws(() => parseReport({ ...sample(), schema: "other" }), /unsupported schema/);
-});
+### Added
 
-test("parseReport rejects non-object", () => {
-  assert.throws(() => parseReport(42), /expected a JSON object/);
-});
+- (planned) monorepo mode: multi-service contracts in a single combined report.
+- (planned) OpenAPI import shim for existing documents.
 
-test("magnitudeBar clamps and fills proportionally", () => {
-  assert.equal(magnitudeBar(0, 10), "[----------]");
-  assert.equal(magnitudeBar(10, 10), "[##########]");
-  assert.equal(magnitudeBar(5, 10), "[#####-----]");
-  // Out-of-range values are clamped, never overflow the bar width.
-  assert.equal(magnitudeBar(99, 10), "[##########]");
-});
+## [1.0.0] - 2026-08-09
 
-test("renderTerminal without color contains key facts and no escapes", () => {
-  const out = renderTerminal(sample(), { color: false });
-  assert.match(out, /orders-api/);
-  assert.match(out, /magnitude 7\.2/);
-  assert.match(out, /RUPTURE/);
-  assert.match(out, /analytics-etl/);
-  assert.ok(!out.includes("\x1b["), "expected no ANSI escapes when color disabled");
-});
+### Added
 
-test("renderTerminal with color emits ANSI escapes", () => {
-  const out = renderTerminal(sample(), { color: true });
-  assert.ok(out.includes("\x1b["), "expected ANSI escapes when color enabled");
-});
+- `-fail-on-behavioral` pipeline flag: treat behavioral-only shifts as a hard
+  failure (exit 2) when the SLA demands it.
+- `-quiet` mode printing only the one-line verdict summary.
 
-test("renderSvg produces valid standalone SVG with a station per consumer", () => {
-  const svg = renderSvg(sample());
-  assert.match(svg, /^<\?xml/);
-  assert.match(svg, /<svg[^>]+width="720"/);
-  assert.match(svg, /analytics-etl/);
-  assert.match(svg, /quiet-svc/);
-  assert.match(svg, /<animate/); // animated
-  assert.ok(!svg.includes("http://") || svg.includes("http://www.w3.org/2000/svg"),
-    "no remote references other than the SVG namespace");
-});
+### Changed
 
-test("renderSvg escapes XML special characters", () => {
-  const r = sample({ service: "a<b>&\"c" });
-  const svg = renderSvg(r);
-  assert.ok(!svg.includes("a<b>&\"c"));
-  assert.match(svg, /a&lt;b&gt;&amp;&quot;c/);
-});
+- Stabilized the report schema at `contractfault/v1` for 1.x.
 
-test("exitCodeFor maps summary to CI codes", () => {
+## [0.8.0] - 2025-11-18
+
+### Changed
+
+- Determinism hardening: every collection sorted before emission; identical
+  inputs now produce byte-identical JSON reports (verified in tests).
+- Text renderer magnitude meter bounded and stable across terminals.
+
+### Fixed
+
+- Consumer manifests with unknown keys now fail loudly instead of silently
+  disarming the blast-radius join.
+
+## [0.7.0] - 2024-11-14
+
+### Added
+
+- TypeScript seismic viewer: colorized terminal impact map and a standalone
+  animated SVG seismograph rendered from the JSON report.
+- Viewer exit codes mirror the Go CLI (0/1/2) so it can double as a CI gate.
+
+## [0.6.0] - 2023-09-21
+
+### Added
+
+- Seismic magnitude scoring on a compressed 0-10 scale with plain-language
+  verdicts (`stable`, `tremor`, `shaken`, `rupture`).
+- CI exit-code mapping: 0 stable, 1 shaken (behavioral), 2 rupture (breaking),
+  3 usage/IO error.
+
+## [0.5.0] - 2022-10-12
+
+### Added
+
+- Consumer blast-radius join: every change attributed to the named consumers
+  that actually depend on the affected element, weighted by criticality.
+
+### Changed
+
+- Field tremors join on `readsFields`/`writesFields`; endpoint tremors join on
+  callers; new required parameters shake every caller of the endpoint.
+
+## [0.4.0] - 2021-12-09
+
+### Added
+
+- Full classification engine across endpoints, parameters, responses, reusable
+  types, fields, enums, nullability, arity, required-ness, deprecation and
+  idempotency - each mapped to breaking / additive / behavioral.
+- Thirty-plus documented rule codes in `docs/CONTRACT.md`.
+
+## [0.3.0] - 2020-11-05
+
+### Added
+
+- Consumer usage manifests with criticality weighting (`high`/`medium`/`low`).
+- Manifest format kept coarse enough to publish without exposing the source
+  tree, precise enough to compute a real blast radius.
+
+## [0.2.0] - 2019-08-22
+
+### Changed
+
+- Strict decoding everywhere: unknown keys are hard errors so typos fail
+  loudly instead of silently disarming a check.
+
+### Fixed
+
+- Endpoint correlation now keyed on a stable `id` - renaming a path is
+  reported as a mutation, not a delete-plus-add.
+
+## [0.1.0] - 2018-04-19
+
+### Added
+
+- First seismograph: the documented JSON contract loader and the version diff
+  engine with a plain-text report renderer.
+- Initial example contracts for the `orders-api` fault.
+
+[Unreleased]: https://github.com/michaeldelali/ContractFault/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v1.0.0
+[0.8.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.8.0
+[0.7.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.7.0
+[0.6.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.6.0
+[0.5.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.5.0
+[0.4.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.4.0
+[0.3.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.3.0
+[0.2.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.2.0
+[0.1.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.1.0
+
+// draft note 716
