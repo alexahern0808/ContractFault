@@ -1,116 +1,151 @@
-# Changelog
+// Package consumer models the usage manifests that named downstream services
+// publish to declare which parts of a contract they actually depend on.
+//
+// The impact analyzer joins the set of detected contract changes against these
+// manifests so that a report can say "change X breaks consumer Y" rather than
+// merely "change X exists". A manifest is deliberately coarse: it lists the
+// endpoints a consumer calls and the fields it reads or writes. That is enough
+// to compute a precise blast radius without forcing consumers to publish their
+// entire source tree.
+package consumer
 
-All notable changes to ContractFault are documented here. The format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres
-to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"sort"
+	"strings"
+)
 
-## [Unreleased]
+// Manifest describes one named consumer's dependence on a contract.
+type Manifest struct {
+	// Name is the consumer's service name ("checkout-web").
+	Name string `json:"name"`
+	// Team is the owning team, surfaced in reports for routing.
+	Team string `json:"team"`
+	// Criticality is one of "low", "medium", "high"; it weights the severity
+	// of impacts in the aggregate risk score.
+	Criticality string `json:"criticality"`
+	// Uses lists the specific contract elements the consumer relies on.
+	Uses []Usage `json:"uses"`
+}
 
-### Added
+// Usage is a single dependency edge from a consumer to a contract element.
+type Usage struct {
+	// Endpoint is the operation ID the consumer calls.
+	Endpoint string `json:"endpoint"`
+	// ReadsFields lists "Type.field" paths the consumer reads from responses.
+	ReadsFields []string `json:"readsFields,omitempty"`
+	// WritesFields lists "Type.field" paths the consumer sends in requests.
+	WritesFields []string `json:"writesFields,omitempty"`
+	// Params lists request parameter keys ("query:status") the consumer sets.
+	Params []string `json:"params,omitempty"`
+}
 
-- (planned) monorepo mode: multi-service contracts in a single combined report.
-- (planned) OpenAPI import shim for existing documents.
+// CriticalityWeight maps the criticality label to a numeric multiplier.
+func (m Manifest) CriticalityWeight() int {
+	switch strings.ToLower(m.Criticality) {
+	case "high":
+		return 3
+	case "medium":
+		return 2
+	case "low":
+		return 1
+	default:
+		return 1
+	}
+}
 
-## [1.0.0] - 2026-08-09
+// Validate enforces manifest invariants.
+func (m *Manifest) Validate() error {
+	if strings.TrimSpace(m.Name) == "" {
+		return fmt.Errorf("consumer: manifest has empty name")
+	}
+	switch strings.ToLower(m.Criticality) {
+	case "low", "medium", "high", "":
+	default:
+		return fmt.Errorf("consumer %q: invalid criticality %q", m.Name, m.Criticality)
+	}
+	for i, u := range m.Uses {
+		if strings.TrimSpace(u.Endpoint) == "" {
+			return fmt.Errorf("consumer %q: usage %d has empty endpoint", m.Name, i)
+		}
+	}
+	if strings.TrimSpace(m.Criticality) == "" {
+		m.Criticality = "low"
+	}
+	return nil
+}
 
-### Added
+// UsesEndpoint reports whether the consumer calls the given endpoint ID.
+func (m Manifest) UsesEndpoint(id string) bool {
+	for _, u := range m.Uses {
+		if u.Endpoint == id {
+			return true
+		}
+	}
+	return false
+}
 
-- `-fail-on-behavioral` pipeline flag: treat behavioral-only shifts as a hard
-  failure (exit 2) when the SLA demands it.
-- `-quiet` mode printing only the one-line verdict summary.
+// FieldPaths returns the union of read and write field paths across all usages.
+func (m Manifest) FieldPaths() map[string]bool {
+	out := map[string]bool{}
+	for _, u := range m.Uses {
+		for _, f := range u.ReadsFields {
+			out[f] = true
+		}
+		for _, f := range u.WritesFields {
+			out[f] = true
+		}
+	}
+	return out
+}
 
-### Changed
+// ParamKeys returns the union of parameter keys used across all usages.
+func (m Manifest) ParamKeys() map[string]bool {
+	out := map[string]bool{}
+	for _, u := range m.Uses {
+		for _, p := range u.Params {
+			out[p] = true
+		}
+	}
+	return out
+}
 
-- Stabilized the report schema at `contractfault/v1` for 1.x.
+// Load parses a single consumer manifest file.
+func Load(path string) (*Manifest, error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("consumer: reading %s: %w", path, err)
+	}
+	var m Manifest
+	dec := json.NewDecoder(strings.NewReader(string(raw)))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&m); err != nil {
+		return nil, fmt.Errorf("consumer: decoding %s: %w", path, err)
+	}
+	if err := m.Validate(); err != nil {
+		return nil, err
+	}
+	return &m, nil
+}
 
-## [0.8.0] - 2025-11-18
-
-### Changed
-
-- Determinism hardening: every collection sorted before emission; identical
-  inputs now produce byte-identical JSON reports (verified in tests).
-- Text renderer magnitude meter bounded and stable across terminals.
-
-### Fixed
-
-- Consumer manifests with unknown keys now fail loudly instead of silently
-  disarming the blast-radius join.
-
-## [0.7.0] - 2024-11-14
-
-### Added
-
-- TypeScript seismic viewer: colorized terminal impact map and a standalone
-  animated SVG seismograph rendered from the JSON report.
-- Viewer exit codes mirror the Go CLI (0/1/2) so it can double as a CI gate.
-
-## [0.6.0] - 2023-09-21
-
-### Added
-
-- Seismic magnitude scoring on a compressed 0-10 scale with plain-language
-  verdicts (`stable`, `tremor`, `shaken`, `rupture`).
-- CI exit-code mapping: 0 stable, 1 shaken (behavioral), 2 rupture (breaking),
-  3 usage/IO error.
-
-## [0.5.0] - 2022-10-12
-
-### Added
-
-- Consumer blast-radius join: every change attributed to the named consumers
-  that actually depend on the affected element, weighted by criticality.
-
-### Changed
-
-- Field tremors join on `readsFields`/`writesFields`; endpoint tremors join on
-  callers; new required parameters shake every caller of the endpoint.
-
-## [0.4.0] - 2021-12-09
-
-### Added
-
-- Full classification engine across endpoints, parameters, responses, reusable
-  types, fields, enums, nullability, arity, required-ness, deprecation and
-  idempotency - each mapped to breaking / additive / behavioral.
-- Thirty-plus documented rule codes in `docs/CONTRACT.md`.
-
-## [0.3.0] - 2020-11-05
-
-### Added
-
-- Consumer usage manifests with criticality weighting (`high`/`medium`/`low`).
-- Manifest format kept coarse enough to publish without exposing the source
-  tree, precise enough to compute a real blast radius.
-
-## [0.2.0] - 2019-08-22
-
-### Changed
-
-- Strict decoding everywhere: unknown keys are hard errors so typos fail
-  loudly instead of silently disarming a check.
-
-### Fixed
-
-- Endpoint correlation now keyed on a stable `id` - renaming a path is
-  reported as a mutation, not a delete-plus-add.
-
-## [0.1.0] - 2018-04-19
-
-### Added
-
-- First seismograph: the documented JSON contract loader and the version diff
-  engine with a plain-text report renderer.
-- Initial example contracts for the `orders-api` fault.
-
-[Unreleased]: https://github.com/michaeldelali/ContractFault/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v1.0.0
-[0.8.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.8.0
-[0.7.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.7.0
-[0.6.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.6.0
-[0.5.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.5.0
-[0.4.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.4.0
-[0.3.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.3.0
-[0.2.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.2.0
-[0.1.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.1.0
-
-// draft note 697
+// LoadAll parses every manifest at the given paths and returns them sorted by
+// name for deterministic downstream ordering.
+func LoadAll(paths []string) ([]Manifest, error) {
+	out := make([]Manifest, 0, len(paths))
+	seen := map[string]bool{}
+	for _, p := range paths {
+		m, err := Load(p)
+		if err != nil {
+			return nil, err
+		}
+		if seen[m.Name] {
+			return nil, fmt.Errorf("consumer: duplicate consumer name %q", m.Name)
+		}
+		seen[m.Name] = true
+		out = append(out, *m)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+	return out, nil
+}
