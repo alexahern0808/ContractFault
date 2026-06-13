@@ -1,116 +1,198 @@
-# Changelog
+// Command contractfault is a deterministic API contract consumer-impact
+// analyzer. It ingests two versions of a documented JSON contract plus a set
+// of consumer usage manifests, classifies every difference as breaking,
+// additive or behavioral, joins those changes against the consumers that
+// depend on the affected elements, and emits a JSON or text seismic report
+// with a CI-friendly exit code.
+//
+// Usage:
+//
+//	contractfault -old before.json -new after.json -consumers 'consumers/*.json' [flags]
+//
+// Flags:
+//
+//	-old            path to the previous contract version (required)
+//	-new            path to the new contract version (required)
+//	-consumers      glob or comma list of consumer manifest paths
+//	-format         "text" (default) or "json"
+//	-out            write the report to a file instead of stdout
+//	-fail-on-behavioral   exit non-zero on behavioral-only shifts
+//	-quiet          suppress the report body, print only the verdict line
+//
+// Exit codes: 0 stable, 1 shaken (behavioral), 2 rupture (breaking), 3 usage
+// or IO error.
+package main
 
-All notable changes to ContractFault are documented here. The format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres
-to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+import (
+	"errors"
+	"flag"
+	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
 
-## [Unreleased]
+	"github.com/michaeldelali/contractfault/internal/analyze"
+	"github.com/michaeldelali/contractfault/internal/consumer"
+	"github.com/michaeldelali/contractfault/internal/contract"
+	"github.com/michaeldelali/contractfault/internal/impact"
+	"github.com/michaeldelali/contractfault/internal/report"
+)
 
-### Added
+const usageExit = 3
 
-- (planned) monorepo mode: multi-service contracts in a single combined report.
-- (planned) OpenAPI import shim for existing documents.
+type options struct {
+	oldPath          string
+	newPath          string
+	consumers        string
+	format           string
+	out              string
+	failOnBehavioral bool
+	quiet            bool
+}
 
-## [1.0.0] - 2026-08-09
+func main() {
+	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
+}
 
-### Added
+// run is the testable core: it parses args, executes the pipeline and returns
+// the process exit code, writing report output to out and diagnostics to errw.
+func run(args []string, out, errw *os.File) int {
+	opts, err := parseFlags(args, errw)
+	if err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return 0
+		}
+		fmt.Fprintf(errw, "contractfault: %v\n", err)
+		return usageExit
+	}
 
-- `-fail-on-behavioral` pipeline flag: treat behavioral-only shifts as a hard
-  failure (exit 2) when the SLA demands it.
-- `-quiet` mode printing only the one-line verdict summary.
+	oldC, err := contract.Load(opts.oldPath)
+	if err != nil {
+		fmt.Fprintf(errw, "contractfault: %v\n", err)
+		return usageExit
+	}
+	newC, err := contract.Load(opts.newPath)
+	if err != nil {
+		fmt.Fprintf(errw, "contractfault: %v\n", err)
+		return usageExit
+	}
 
-### Changed
+	paths, err := resolveConsumerPaths(opts.consumers)
+	if err != nil {
+		fmt.Fprintf(errw, "contractfault: %v\n", err)
+		return usageExit
+	}
+	consumers, err := consumer.LoadAll(paths)
+	if err != nil {
+		fmt.Fprintf(errw, "contractfault: %v\n", err)
+		return usageExit
+	}
 
-- Stabilized the report schema at `contractfault/v1` for 1.x.
+	diff, err := analyze.Compare(oldC, newC)
+	if err != nil {
+		fmt.Fprintf(errw, "contractfault: %v\n", err)
+		return usageExit
+	}
+	rep := impact.Build(diff, consumers)
 
-## [0.8.0] - 2025-11-18
+	var rendered []byte
+	switch opts.format {
+	case "json":
+		rendered, err = report.JSON(rep)
+		if err != nil {
+			fmt.Fprintf(errw, "contractfault: %v\n", err)
+			return usageExit
+		}
+	case "text":
+		rendered = []byte(report.Text(rep))
+	default:
+		fmt.Fprintf(errw, "contractfault: unknown format %q (want text|json)\n", opts.format)
+		return usageExit
+	}
 
-### Changed
+	if opts.quiet {
+		line := fmt.Sprintf("%s %s->%s magnitude=%.1f verdict=%s breaking=%d\n",
+			rep.Service, rep.FromVersion, rep.ToVersion,
+			rep.Summary.Magnitude, rep.Summary.Verdict, rep.Summary.Breaking)
+		if opts.format == "json" {
+			// In quiet+json mode still emit full JSON to the file/stdout so the
+			// viewer has data, but keep stderr terse.
+			fmt.Fprint(errw, line)
+		} else {
+			rendered = []byte(line)
+		}
+	}
 
-- Determinism hardening: every collection sorted before emission; identical
-  inputs now produce byte-identical JSON reports (verified in tests).
-- Text renderer magnitude meter bounded and stable across terminals.
+	if opts.out != "" {
+		if err := os.WriteFile(opts.out, rendered, 0o644); err != nil {
+			fmt.Fprintf(errw, "contractfault: writing %s: %v\n", opts.out, err)
+			return usageExit
+		}
+	} else {
+		out.Write(rendered)
+	}
 
-### Fixed
+	return report.ExitCode(rep, opts.failOnBehavioral)
+}
 
-- Consumer manifests with unknown keys now fail loudly instead of silently
-  disarming the blast-radius join.
+func parseFlags(args []string, errw *os.File) (*options, error) {
+	fs := flag.NewFlagSet("contractfault", flag.ContinueOnError)
+	fs.SetOutput(errw)
+	opts := &options{}
+	fs.StringVar(&opts.oldPath, "old", "", "path to the previous contract version (required)")
+	fs.StringVar(&opts.newPath, "new", "", "path to the new contract version (required)")
+	fs.StringVar(&opts.consumers, "consumers", "", "glob or comma-separated list of consumer manifest paths")
+	fs.StringVar(&opts.format, "format", "text", "output format: text|json")
+	fs.StringVar(&opts.out, "out", "", "write report to file instead of stdout")
+	fs.BoolVar(&opts.failOnBehavioral, "fail-on-behavioral", false, "treat behavioral-only shifts as a failure (exit 2)")
+	fs.BoolVar(&opts.quiet, "quiet", false, "print only the verdict summary line")
+	fs.Usage = func() {
+		fmt.Fprintf(errw, "contractfault: API contract consumer-impact analyzer\n\n")
+		fmt.Fprintf(errw, "usage: contractfault -old before.json -new after.json -consumers 'consumers/*.json'\n\n")
+		fs.PrintDefaults()
+	}
+	if err := fs.Parse(args); err != nil {
+		return nil, err
+	}
+	if opts.oldPath == "" || opts.newPath == "" {
+		return nil, fmt.Errorf("both -old and -new are required")
+	}
+	return opts, nil
+}
 
-## [0.7.0] - 2024-11-14
-
-### Added
-
-- TypeScript seismic viewer: colorized terminal impact map and a standalone
-  animated SVG seismograph rendered from the JSON report.
-- Viewer exit codes mirror the Go CLI (0/1/2) so it can double as a CI gate.
-
-## [0.6.0] - 2023-09-21
-
-### Added
-
-- Seismic magnitude scoring on a compressed 0-10 scale with plain-language
-  verdicts (`stable`, `tremor`, `shaken`, `rupture`).
-- CI exit-code mapping: 0 stable, 1 shaken (behavioral), 2 rupture (breaking),
-  3 usage/IO error.
-
-## [0.5.0] - 2022-10-12
-
-### Added
-
-- Consumer blast-radius join: every change attributed to the named consumers
-  that actually depend on the affected element, weighted by criticality.
-
-### Changed
-
-- Field tremors join on `readsFields`/`writesFields`; endpoint tremors join on
-  callers; new required parameters shake every caller of the endpoint.
-
-## [0.4.0] - 2021-12-09
-
-### Added
-
-- Full classification engine across endpoints, parameters, responses, reusable
-  types, fields, enums, nullability, arity, required-ness, deprecation and
-  idempotency - each mapped to breaking / additive / behavioral.
-- Thirty-plus documented rule codes in `docs/CONTRACT.md`.
-
-## [0.3.0] - 2020-11-05
-
-### Added
-
-- Consumer usage manifests with criticality weighting (`high`/`medium`/`low`).
-- Manifest format kept coarse enough to publish without exposing the source
-  tree, precise enough to compute a real blast radius.
-
-## [0.2.0] - 2019-08-22
-
-### Changed
-
-- Strict decoding everywhere: unknown keys are hard errors so typos fail
-  loudly instead of silently disarming a check.
-
-### Fixed
-
-- Endpoint correlation now keyed on a stable `id` - renaming a path is
-  reported as a mutation, not a delete-plus-add.
-
-## [0.1.0] - 2018-04-19
-
-### Added
-
-- First seismograph: the documented JSON contract loader and the version diff
-  engine with a plain-text report renderer.
-- Initial example contracts for the `orders-api` fault.
-
-[Unreleased]: https://github.com/michaeldelali/ContractFault/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v1.0.0
-[0.8.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.8.0
-[0.7.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.7.0
-[0.6.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.6.0
-[0.5.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.5.0
-[0.4.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.4.0
-[0.3.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.3.0
-[0.2.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.2.0
-[0.1.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.1.0
-
-// draft note 730
+// resolveConsumerPaths expands a spec that may be a glob, a comma-separated
+// list, or a mix, into a sorted, de-duplicated list of manifest file paths.
+func resolveConsumerPaths(spec string) ([]string, error) {
+	if strings.TrimSpace(spec) == "" {
+		return nil, nil
+	}
+	set := map[string]bool{}
+	for _, part := range strings.Split(spec, ",") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		matches, err := filepath.Glob(part)
+		if err != nil {
+			return nil, fmt.Errorf("bad consumer glob %q: %w", part, err)
+		}
+		if len(matches) == 0 {
+			// Treat as a literal path if it is not a glob pattern.
+			if !strings.ContainsAny(part, "*?[") {
+				set[part] = true
+				continue
+			}
+			return nil, fmt.Errorf("consumer glob %q matched no files", part)
+		}
+		for _, m := range matches {
+			set[m] = true
+		}
+	}
+	out := make([]string, 0, len(set))
+	for p := range set {
+		out = append(out, p)
+	}
+	sort.Strings(out)
+	return out, nil
+}
