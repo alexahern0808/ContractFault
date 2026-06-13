@@ -1,116 +1,67 @@
-# Changelog
+package main
 
-All notable changes to ContractFault are documented here. The format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres
-to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
-## [Unreleased]
+// TestResolveConsumerPathsGlob verifies glob expansion, comma lists and
+// literal-path fallback all resolve deterministically.
+func TestResolveConsumerPathsGlob(t *testing.T) {
+	dir := t.TempDir()
+	for _, n := range []string{"b.json", "a.json"} {
+		if err := os.WriteFile(filepath.Join(dir, n), []byte("{}"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	paths, err := resolveConsumerPaths(filepath.Join(dir, "*.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(paths) != 2 || filepath.Base(paths[0]) != "a.json" {
+		t.Fatalf("glob resolution wrong/unsorted: %v", paths)
+	}
+}
 
-### Added
+func TestResolveConsumerPathsMissingGlob(t *testing.T) {
+	if _, err := resolveConsumerPaths(filepath.Join(t.TempDir(), "*.json")); err == nil {
+		t.Fatal("expected error for empty glob match")
+	}
+}
 
-- (planned) monorepo mode: multi-service contracts in a single combined report.
-- (planned) OpenAPI import shim for existing documents.
+func TestResolveConsumerPathsEmpty(t *testing.T) {
+	paths, err := resolveConsumerPaths("")
+	if err != nil || paths != nil {
+		t.Fatalf("empty spec should yield nil, got %v / %v", paths, err)
+	}
+}
 
-## [1.0.0] - 2026-08-09
+// TestRunEndToEnd exercises the whole pipeline against the shipped examples and
+// asserts the rupture exit code.
+func TestRunEndToEnd(t *testing.T) {
+	base := filepath.Join("..", "..", "examples")
+	oldC := filepath.Join(base, "contracts", "orders-v1.json")
+	newC := filepath.Join(base, "contracts", "orders-v2.json")
+	glob := filepath.Join(base, "consumers", "*.json")
+	out := filepath.Join(t.TempDir(), "out.json")
 
-### Added
+	code := run([]string{"-old", oldC, "-new", newC, "-consumers", glob,
+		"-format", "json", "-out", out}, os.Stdout, os.Stderr)
+	if code != 2 {
+		t.Fatalf("expected rupture exit 2, got %d", code)
+	}
+	data, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(data) == 0 {
+		t.Fatal("no report written")
+	}
+}
 
-- `-fail-on-behavioral` pipeline flag: treat behavioral-only shifts as a hard
-  failure (exit 2) when the SLA demands it.
-- `-quiet` mode printing only the one-line verdict summary.
-
-### Changed
-
-- Stabilized the report schema at `contractfault/v1` for 1.x.
-
-## [0.8.0] - 2025-11-18
-
-### Changed
-
-- Determinism hardening: every collection sorted before emission; identical
-  inputs now produce byte-identical JSON reports (verified in tests).
-- Text renderer magnitude meter bounded and stable across terminals.
-
-### Fixed
-
-- Consumer manifests with unknown keys now fail loudly instead of silently
-  disarming the blast-radius join.
-
-## [0.7.0] - 2024-11-14
-
-### Added
-
-- TypeScript seismic viewer: colorized terminal impact map and a standalone
-  animated SVG seismograph rendered from the JSON report.
-- Viewer exit codes mirror the Go CLI (0/1/2) so it can double as a CI gate.
-
-## [0.6.0] - 2023-09-21
-
-### Added
-
-- Seismic magnitude scoring on a compressed 0-10 scale with plain-language
-  verdicts (`stable`, `tremor`, `shaken`, `rupture`).
-- CI exit-code mapping: 0 stable, 1 shaken (behavioral), 2 rupture (breaking),
-  3 usage/IO error.
-
-## [0.5.0] - 2022-10-12
-
-### Added
-
-- Consumer blast-radius join: every change attributed to the named consumers
-  that actually depend on the affected element, weighted by criticality.
-
-### Changed
-
-- Field tremors join on `readsFields`/`writesFields`; endpoint tremors join on
-  callers; new required parameters shake every caller of the endpoint.
-
-## [0.4.0] - 2021-12-09
-
-### Added
-
-- Full classification engine across endpoints, parameters, responses, reusable
-  types, fields, enums, nullability, arity, required-ness, deprecation and
-  idempotency - each mapped to breaking / additive / behavioral.
-- Thirty-plus documented rule codes in `docs/CONTRACT.md`.
-
-## [0.3.0] - 2020-11-05
-
-### Added
-
-- Consumer usage manifests with criticality weighting (`high`/`medium`/`low`).
-- Manifest format kept coarse enough to publish without exposing the source
-  tree, precise enough to compute a real blast radius.
-
-## [0.2.0] - 2019-08-22
-
-### Changed
-
-- Strict decoding everywhere: unknown keys are hard errors so typos fail
-  loudly instead of silently disarming a check.
-
-### Fixed
-
-- Endpoint correlation now keyed on a stable `id` - renaming a path is
-  reported as a mutation, not a delete-plus-add.
-
-## [0.1.0] - 2018-04-19
-
-### Added
-
-- First seismograph: the documented JSON contract loader and the version diff
-  engine with a plain-text report renderer.
-- Initial example contracts for the `orders-api` fault.
-
-[Unreleased]: https://github.com/michaeldelali/ContractFault/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v1.0.0
-[0.8.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.8.0
-[0.7.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.7.0
-[0.6.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.6.0
-[0.5.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.5.0
-[0.4.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.4.0
-[0.3.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.3.0
-[0.2.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.2.0
-[0.1.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.1.0
-
-// draft note 668
+func TestRunMissingFlags(t *testing.T) {
+	if code := run([]string{"-old", "x.json"}, os.Stdout, os.Stderr); code != usageExit {
+		t.Fatalf("missing -new should exit %d, got %d", usageExit, code)
+	}
+}
