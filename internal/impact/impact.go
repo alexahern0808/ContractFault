@@ -1,116 +1,253 @@
-# Changelog
+// Package impact joins classified contract changes against consumer manifests
+// to compute a blast radius: which named consumers are affected by which
+// changes, at what severity, and an aggregate seismic risk score.
+//
+// The metaphor throughout contractfault is seismic: a contract change is a
+// tremor, the affected consumers are the towns along the fault line, and the
+// risk score is the magnitude. This package produces the Report struct that is
+// serialized to JSON for the TypeScript viewer and rendered to text for CI.
+package impact
 
-All notable changes to ContractFault are documented here. The format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres
-to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+import (
+	"sort"
 
-## [Unreleased]
+	"github.com/michaeldelali/contractfault/internal/analyze"
+	"github.com/michaeldelali/contractfault/internal/consumer"
+)
 
-### Added
+// Report is the top-level, serializable output of the analyzer.
+type Report struct {
+	// Schema is a version tag so the TypeScript viewer can guard on shape.
+	Schema string `json:"schema"`
+	// Service is the analyzed service name.
+	Service string `json:"service"`
+	// FromVersion / ToVersion bracket the comparison.
+	FromVersion string `json:"fromVersion"`
+	ToVersion   string `json:"toVersion"`
+	// Summary aggregates counts and the overall magnitude.
+	Summary Summary `json:"summary"`
+	// Changes is the full classified change set, each annotated with the
+	// consumers it impacts.
+	Changes []ChangeImpact `json:"changes"`
+	// Consumers is the per-consumer rollup of impacts.
+	Consumers []ConsumerImpact `json:"consumers"`
+}
 
-- (planned) monorepo mode: multi-service contracts in a single combined report.
-- (planned) OpenAPI import shim for existing documents.
+// Summary holds aggregate metrics for the whole comparison.
+type Summary struct {
+	Breaking   int `json:"breaking"`
+	Additive   int `json:"additive"`
+	Behavioral int `json:"behavioral"`
+	// AffectedConsumers is the number of consumers with at least one impact.
+	AffectedConsumers int `json:"affectedConsumers"`
+	// Magnitude is the seismic risk score on a 0.0-10.0 scale.
+	Magnitude float64 `json:"magnitude"`
+	// Verdict is a plain-language summary ("stable", "shaken", "rupture").
+	Verdict string `json:"verdict"`
+}
 
-## [1.0.0] - 2026-08-09
+// ChangeImpact is a classified change plus the consumers it affects.
+type ChangeImpact struct {
+	analyze.Change
+	// Consumers lists the names of consumers impacted by this change.
+	Consumers []string `json:"consumers"`
+}
 
-### Added
+// ConsumerImpact is one consumer's rollup across all changes.
+type ConsumerImpact struct {
+	Name        string `json:"name"`
+	Team        string `json:"team"`
+	Criticality string `json:"criticality"`
+	// Breaking / Additive / Behavioral count impacts by category.
+	Breaking   int `json:"breaking"`
+	Additive   int `json:"additive"`
+	Behavioral int `json:"behavioral"`
+	// Codes lists the change codes affecting this consumer, sorted.
+	Codes []string `json:"codes"`
+	// Score is this consumer's weighted contribution to the magnitude.
+	Score float64 `json:"score"`
+}
 
-- `-fail-on-behavioral` pipeline flag: treat behavioral-only shifts as a hard
-  failure (exit 2) when the SLA demands it.
-- `-quiet` mode printing only the one-line verdict summary.
+// severityWeight maps a severity label to a magnitude weight.
+func severityWeight(sev string) float64 {
+	switch sev {
+	case "critical":
+		return 4.0
+	case "major":
+		return 2.5
+	case "minor":
+		return 1.0
+	default:
+		return 0.25
+	}
+}
 
-### Changed
+// Build joins a diff against consumer manifests into a finished report.
+func Build(diff *analyze.Diff, consumers []consumer.Manifest) *Report {
+	r := &Report{
+		Schema:      "contractfault/v1",
+		Service:     diff.Service,
+		FromVersion: diff.FromVersion,
+		ToVersion:   diff.ToVersion,
+	}
 
-- Stabilized the report schema at `contractfault/v1` for 1.x.
+	// Per-consumer accumulators.
+	type acc struct {
+		m          consumer.Manifest
+		breaking   int
+		additive   int
+		behavioral int
+		codes      map[string]bool
+		score      float64
+	}
+	accs := make(map[string]*acc, len(consumers))
+	order := make([]string, 0, len(consumers))
+	for _, m := range consumers {
+		accs[m.Name] = &acc{m: m, codes: map[string]bool{}}
+		order = append(order, m.Name)
+	}
 
-## [0.8.0] - 2025-11-18
+	var magnitude float64
+	for _, ch := range diff.Changes {
+		affected := affectedConsumers(ch, consumers)
+		ci := ChangeImpact{Change: ch, Consumers: affected}
+		r.Changes = append(r.Changes, ci)
 
-### Changed
+		// The base tremor magnitude of a change is its severity weight; it is
+		// amplified by each affected consumer's criticality.
+		base := severityWeight(ch.Severity)
+		for _, name := range affected {
+			a := accs[name]
+			switch ch.Category {
+			case analyze.Breaking:
+				a.breaking++
+			case analyze.Additive:
+				a.additive++
+			case analyze.Behavioral:
+				a.behavioral++
+			}
+			a.codes[ch.Code] = true
+			contribution := base * float64(a.m.CriticalityWeight())
+			a.score += contribution
+			magnitude += contribution
+		}
+	}
 
-- Determinism hardening: every collection sorted before emission; identical
-  inputs now produce byte-identical JSON reports (verified in tests).
-- Text renderer magnitude meter bounded and stable across terminals.
+	// Materialize consumer rollups in stable order.
+	affectedCount := 0
+	for _, name := range order {
+		a := accs[name]
+		total := a.breaking + a.additive + a.behavioral
+		if total > 0 {
+			affectedCount++
+		}
+		codes := make([]string, 0, len(a.codes))
+		for c := range a.codes {
+			codes = append(codes, c)
+		}
+		sort.Strings(codes)
+		r.Consumers = append(r.Consumers, ConsumerImpact{
+			Name:        a.m.Name,
+			Team:        a.m.Team,
+			Criticality: a.m.Criticality,
+			Breaking:    a.breaking,
+			Additive:    a.additive,
+			Behavioral:  a.behavioral,
+			Codes:       codes,
+			Score:       round1(a.score),
+		})
+	}
+	sort.SliceStable(r.Consumers, func(i, j int) bool {
+		if r.Consumers[i].Score != r.Consumers[j].Score {
+			return r.Consumers[i].Score > r.Consumers[j].Score
+		}
+		return r.Consumers[i].Name < r.Consumers[j].Name
+	})
 
-### Fixed
+	counts := diff.Counts()
+	r.Summary = Summary{
+		Breaking:          counts[analyze.Breaking],
+		Additive:          counts[analyze.Additive],
+		Behavioral:        counts[analyze.Behavioral],
+		AffectedConsumers: affectedCount,
+		Magnitude:         magnitudeScale(magnitude),
+	}
+	r.Summary.Verdict = verdict(r.Summary)
+	return r
+}
 
-- Consumer manifests with unknown keys now fail loudly instead of silently
-  disarming the blast-radius join.
+// affectedConsumers returns the sorted names of consumers impacted by a change.
+func affectedConsumers(ch analyze.Change, consumers []consumer.Manifest) []string {
+	// Always non-nil so the JSON report renders "consumers": [] rather than
+	// null, which keeps the TypeScript viewer's array handling simple.
+	out := []string{}
+	for _, m := range consumers {
+		if consumerAffected(ch, m) {
+			out = append(out, m.Name)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
 
-## [0.7.0] - 2024-11-14
+// consumerAffected reports whether a change touches something the consumer uses.
+func consumerAffected(ch analyze.Change, m consumer.Manifest) bool {
+	// Field-scoped changes only affect consumers that read/write that field.
+	if ch.FieldPath != "" {
+		return m.FieldPaths()[ch.FieldPath]
+	}
+	// Parameter-scoped changes only affect consumers that set that parameter,
+	// but a required-parameter addition affects every caller of the endpoint.
+	if ch.ParamKey != "" {
+		if ch.Code == "param.added" || ch.Code == "param.required.added" {
+			return m.UsesEndpoint(ch.Endpoint)
+		}
+		if m.ParamKeys()[ch.ParamKey] {
+			return true
+		}
+		return false
+	}
+	// Endpoint-scoped changes affect every consumer that calls the endpoint.
+	if ch.Endpoint != "" {
+		return m.UsesEndpoint(ch.Endpoint)
+	}
+	// Type-scoped changes (no field path) affect consumers referencing any
+	// field of that type.
+	typeName := ch.Location
+	for path := range m.FieldPaths() {
+		if len(path) > len(typeName) && path[:len(typeName)] == typeName && path[len(typeName)] == '.' {
+			return true
+		}
+	}
+	return false
+}
 
-### Added
+// magnitudeScale compresses the raw additive score into a 0-10 Richter-like
+// scale using a diminishing-returns curve so a handful of critical breaks
+// dominate without a long tail of info changes saturating the meter.
+func magnitudeScale(raw float64) float64 {
+	if raw <= 0 {
+		return 0
+	}
+	// Logarithmic-style compression: 10 * (1 - 1/(1 + raw/12)).
+	m := 10.0 * (1.0 - 1.0/(1.0+raw/12.0))
+	return round1(m)
+}
 
-- TypeScript seismic viewer: colorized terminal impact map and a standalone
-  animated SVG seismograph rendered from the JSON report.
-- Viewer exit codes mirror the Go CLI (0/1/2) so it can double as a CI gate.
+// verdict renders a plain-language seismic verdict from the summary.
+func verdict(s Summary) string {
+	switch {
+	case s.Breaking == 0 && s.Behavioral == 0:
+		return "stable"
+	case s.Magnitude >= 6.0 || s.Breaking >= 3:
+		return "rupture"
+	case s.Magnitude >= 3.0 || s.Breaking >= 1:
+		return "shaken"
+	default:
+		return "tremor"
+	}
+}
 
-## [0.6.0] - 2023-09-21
-
-### Added
-
-- Seismic magnitude scoring on a compressed 0-10 scale with plain-language
-  verdicts (`stable`, `tremor`, `shaken`, `rupture`).
-- CI exit-code mapping: 0 stable, 1 shaken (behavioral), 2 rupture (breaking),
-  3 usage/IO error.
-
-## [0.5.0] - 2022-10-12
-
-### Added
-
-- Consumer blast-radius join: every change attributed to the named consumers
-  that actually depend on the affected element, weighted by criticality.
-
-### Changed
-
-- Field tremors join on `readsFields`/`writesFields`; endpoint tremors join on
-  callers; new required parameters shake every caller of the endpoint.
-
-## [0.4.0] - 2021-12-09
-
-### Added
-
-- Full classification engine across endpoints, parameters, responses, reusable
-  types, fields, enums, nullability, arity, required-ness, deprecation and
-  idempotency - each mapped to breaking / additive / behavioral.
-- Thirty-plus documented rule codes in `docs/CONTRACT.md`.
-
-## [0.3.0] - 2020-11-05
-
-### Added
-
-- Consumer usage manifests with criticality weighting (`high`/`medium`/`low`).
-- Manifest format kept coarse enough to publish without exposing the source
-  tree, precise enough to compute a real blast radius.
-
-## [0.2.0] - 2019-08-22
-
-### Changed
-
-- Strict decoding everywhere: unknown keys are hard errors so typos fail
-  loudly instead of silently disarming a check.
-
-### Fixed
-
-- Endpoint correlation now keyed on a stable `id` - renaming a path is
-  reported as a mutation, not a delete-plus-add.
-
-## [0.1.0] - 2018-04-19
-
-### Added
-
-- First seismograph: the documented JSON contract loader and the version diff
-  engine with a plain-text report renderer.
-- Initial example contracts for the `orders-api` fault.
-
-[Unreleased]: https://github.com/michaeldelali/ContractFault/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v1.0.0
-[0.8.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.8.0
-[0.7.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.7.0
-[0.6.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.6.0
-[0.5.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.5.0
-[0.4.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.4.0
-[0.3.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.3.0
-[0.2.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.2.0
-[0.1.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.1.0
-
-// draft note 731
+func round1(f float64) float64 {
+	return float64(int(f*10+0.5)) / 10
+}
