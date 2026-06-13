@@ -1,116 +1,582 @@
-# Changelog
+// Package analyze compares two contract versions and classifies every
+// difference into a change with a category (breaking, additive, behavioral),
+// a severity and a stable location, then joins the changes against consumer
+// manifests to compute a blast radius.
+//
+// Classification rules are documented inline and mirrored in docs/CONTRACT.md.
+// The engine is deterministic: identical inputs always yield byte-identical
+// reports because every collection is sorted before emission.
+package analyze
 
-All notable changes to ContractFault are documented here. The format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres
-to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+import (
+	"fmt"
+	"sort"
+	"strings"
 
-## [Unreleased]
+	"github.com/michaeldelali/contractfault/internal/contract"
+)
 
-### Added
+// Category is the top-level classification of a change.
+type Category string
 
-- (planned) monorepo mode: multi-service contracts in a single combined report.
-- (planned) OpenAPI import shim for existing documents.
+const (
+	// Breaking changes can cause existing consumers to fail.
+	Breaking Category = "breaking"
+	// Additive changes extend the surface without breaking existing callers.
+	Additive Category = "additive"
+	// Behavioral changes keep the shape but alter runtime semantics.
+	Behavioral Category = "behavioral"
+)
 
-## [1.0.0] - 2026-08-09
+// Severity ranks how disruptive a change is within its category.
+type Severity int
 
-### Added
+const (
+	// Info is a purely informational, low-risk change.
+	Info Severity = iota + 1
+	// Minor is a change consumers should be aware of.
+	Minor
+	// Major is a change likely to require consumer code updates.
+	Major
+	// Critical is a change that will break consumers unless they migrate.
+	Critical
+)
 
-- `-fail-on-behavioral` pipeline flag: treat behavioral-only shifts as a hard
-  failure (exit 2) when the SLA demands it.
-- `-quiet` mode printing only the one-line verdict summary.
+// String renders a severity as a stable lowercase label.
+func (s Severity) String() string {
+	switch s {
+	case Critical:
+		return "critical"
+	case Major:
+		return "major"
+	case Minor:
+		return "minor"
+	default:
+		return "info"
+	}
+}
 
-### Changed
+// Change is a single classified difference between two contract versions.
+type Change struct {
+	// Code is a stable machine identifier ("endpoint.removed").
+	Code string `json:"code"`
+	// Category is breaking / additive / behavioral.
+	Category Category `json:"category"`
+	// Severity ranks impact within the category.
+	Severity string `json:"severity"`
+	// Location is a human/consumer-correlatable path ("getOrder",
+	// "Order.total", "getOrder#query:status").
+	Location string `json:"location"`
+	// Endpoint is the operation ID this change is attached to, if any. Used to
+	// join against consumer endpoint usage.
+	Endpoint string `json:"endpoint,omitempty"`
+	// FieldPath is the "Type.field" path this change touches, if any.
+	FieldPath string `json:"fieldPath,omitempty"`
+	// ParamKey is the parameter key this change touches, if any.
+	ParamKey string `json:"paramKey,omitempty"`
+	// Detail is a one-line human description of what changed.
+	Detail string `json:"detail"`
+	// Migration is an actionable hint for consumers.
+	Migration string `json:"migration"`
+}
 
-- Stabilized the report schema at `contractfault/v1` for 1.x.
+// severityRank exposes the numeric severity for sorting and scoring.
+func severityRank(s string) int {
+	switch s {
+	case "critical":
+		return 4
+	case "major":
+		return 3
+	case "minor":
+		return 2
+	default:
+		return 1
+	}
+}
 
-## [0.8.0] - 2025-11-18
+// Diff holds the full set of classified changes between two versions.
+type Diff struct {
+	FromVersion string
+	ToVersion   string
+	Service     string
+	Changes     []Change
+}
 
-### Changed
+// Compare classifies every difference between the old and new contract.
+// The two contracts must describe the same service.
+func Compare(oldC, newC *contract.Contract) (*Diff, error) {
+	if oldC.Service != newC.Service {
+		return nil, fmt.Errorf("analyze: service mismatch %q vs %q", oldC.Service, newC.Service)
+	}
+	d := &Diff{
+		FromVersion: oldC.Version,
+		ToVersion:   newC.Version,
+		Service:     newC.Service,
+	}
+	d.diffEndpoints(oldC, newC)
+	d.diffTypes(oldC, newC)
+	d.sortChanges()
+	return d, nil
+}
 
-- Determinism hardening: every collection sorted before emission; identical
-  inputs now produce byte-identical JSON reports (verified in tests).
-- Text renderer magnitude meter bounded and stable across terminals.
+func (d *Diff) add(c Change) { d.Changes = append(d.Changes, c) }
 
-### Fixed
+// diffEndpoints classifies endpoint-level differences.
+func (d *Diff) diffEndpoints(oldC, newC *contract.Contract) {
+	oldEps := oldC.EndpointByID()
+	newEps := newC.EndpointByID()
 
-- Consumer manifests with unknown keys now fail loudly instead of silently
-  disarming the blast-radius join.
+	for id, oe := range oldEps {
+		ne, ok := newEps[id]
+		if !ok {
+			d.add(Change{
+				Code:      "endpoint.removed",
+				Category:  Breaking,
+				Severity:  Critical.String(),
+				Location:  id,
+				Endpoint:  id,
+				Detail:    fmt.Sprintf("endpoint %s %s (%s) was removed", oe.Method, oe.Path, id),
+				Migration: "Stop calling this endpoint; migrate to a replacement operation before upgrading.",
+			})
+			continue
+		}
+		d.diffEndpointPair(oe, ne)
+	}
+	for id, ne := range newEps {
+		if _, ok := oldEps[id]; !ok {
+			d.add(Change{
+				Code:      "endpoint.added",
+				Category:  Additive,
+				Severity:  Info.String(),
+				Location:  id,
+				Endpoint:  id,
+				Detail:    fmt.Sprintf("endpoint %s %s (%s) was added", ne.Method, ne.Path, id),
+				Migration: "No action required; new capability is available to adopt.",
+			})
+		}
+	}
+}
 
-## [0.7.0] - 2024-11-14
+// diffEndpointPair classifies differences within a single correlated endpoint.
+func (d *Diff) diffEndpointPair(oe, ne contract.Endpoint) {
+	if oe.Method != ne.Method {
+		d.add(Change{
+			Code:      "endpoint.method.changed",
+			Category:  Breaking,
+			Severity:  Critical.String(),
+			Location:  ne.ID,
+			Endpoint:  ne.ID,
+			Detail:    fmt.Sprintf("method changed %s -> %s", oe.Method, ne.Method),
+			Migration: fmt.Sprintf("Update the HTTP verb from %s to %s.", oe.Method, ne.Method),
+		})
+	}
+	if oe.Path != ne.Path {
+		d.add(Change{
+			Code:      "endpoint.path.changed",
+			Category:  Breaking,
+			Severity:  Major.String(),
+			Location:  ne.ID,
+			Endpoint:  ne.ID,
+			Detail:    fmt.Sprintf("path changed %s -> %s", oe.Path, ne.Path),
+			Migration: fmt.Sprintf("Update the request URL template to %s.", ne.Path),
+		})
+	}
+	if !oe.Deprecated && ne.Deprecated {
+		d.add(Change{
+			Code:      "endpoint.deprecated",
+			Category:  Behavioral,
+			Severity:  Minor.String(),
+			Location:  ne.ID,
+			Endpoint:  ne.ID,
+			Detail:    "endpoint marked deprecated",
+			Migration: "Plan migration off this endpoint; it may be removed in a future version.",
+		})
+	}
+	if oe.Idempotent != ne.Idempotent {
+		d.add(Change{
+			Code:      "endpoint.idempotency.changed",
+			Category:  Behavioral,
+			Severity:  Major.String(),
+			Location:  ne.ID,
+			Endpoint:  ne.ID,
+			Detail:    fmt.Sprintf("idempotency changed %v -> %v", oe.Idempotent, ne.Idempotent),
+			Migration: "Review retry logic: repeated calls may no longer be safe.",
+		})
+	}
+	if oe.RequestType != ne.RequestType {
+		d.add(Change{
+			Code:      "endpoint.requestType.changed",
+			Category:  Breaking,
+			Severity:  Major.String(),
+			Location:  ne.ID,
+			Endpoint:  ne.ID,
+			Detail:    fmt.Sprintf("request body type changed %q -> %q", oe.RequestType, ne.RequestType),
+			Migration: "Rebuild the request body to match the new type.",
+		})
+	}
+	d.diffParams(oe, ne)
+	d.diffResponses(oe, ne)
+}
 
-### Added
+// diffParams classifies parameter differences within an endpoint.
+func (d *Diff) diffParams(oe, ne contract.Endpoint) {
+	oldP := map[string]contract.Param{}
+	for _, p := range oe.Params {
+		oldP[p.Key()] = p
+	}
+	newP := map[string]contract.Param{}
+	for _, p := range ne.Params {
+		newP[p.Key()] = p
+	}
+	for k, op := range oldP {
+		np, ok := newP[k]
+		if !ok {
+			cat, sev := Additive, Minor
+			mig := "Parameter removed; stop sending it (ignored if still present)."
+			if op.Required {
+				cat, sev = Breaking, Major
+				mig = "A required parameter was removed; update calls that relied on it."
+			}
+			d.add(Change{
+				Code:      "param.removed",
+				Category:  cat,
+				Severity:  sev.String(),
+				Location:  ne.ID + "#" + k,
+				Endpoint:  ne.ID,
+				ParamKey:  k,
+				Detail:    fmt.Sprintf("parameter %s removed", k),
+				Migration: mig,
+			})
+			continue
+		}
+		if !op.Required && np.Required {
+			d.add(Change{
+				Code:      "param.required.added",
+				Category:  Breaking,
+				Severity:  Major.String(),
+				Location:  ne.ID + "#" + k,
+				Endpoint:  ne.ID,
+				ParamKey:  k,
+				Detail:    fmt.Sprintf("parameter %s became required", k),
+				Migration: fmt.Sprintf("Always supply %s; requests without it will be rejected.", np.Name),
+			})
+		}
+		if op.Required && !np.Required {
+			d.add(Change{
+				Code:      "param.required.relaxed",
+				Category:  Additive,
+				Severity:  Info.String(),
+				Location:  ne.ID + "#" + k,
+				Endpoint:  ne.ID,
+				ParamKey:  k,
+				Detail:    fmt.Sprintf("parameter %s became optional", k),
+				Migration: "No action required; the parameter is now optional.",
+			})
+		}
+		if removed := removedEnum(op.Enum, np.Enum); len(removed) > 0 {
+			d.add(Change{
+				Code:      "param.enum.removed",
+				Category:  Breaking,
+				Severity:  Major.String(),
+				Location:  ne.ID + "#" + k,
+				Endpoint:  ne.ID,
+				ParamKey:  k,
+				Detail:    fmt.Sprintf("parameter %s dropped enum values %s", k, strings.Join(removed, ",")),
+				Migration: "Stop sending the removed values; choose a still-valid option.",
+			})
+		}
+	}
+	for k, np := range newP {
+		if _, ok := oldP[k]; ok {
+			continue
+		}
+		cat, sev := Additive, Info
+		mig := "Optional parameter added; adopt when useful."
+		if np.Required {
+			cat, sev = Breaking, Major
+			mig = fmt.Sprintf("A required parameter %s was added; all callers must supply it.", np.Name)
+		}
+		d.add(Change{
+			Code:      "param.added",
+			Category:  cat,
+			Severity:  sev.String(),
+			Location:  ne.ID + "#" + k,
+			Endpoint:  ne.ID,
+			ParamKey:  k,
+			Detail:    fmt.Sprintf("parameter %s added (required=%v)", k, np.Required),
+			Migration: mig,
+		})
+	}
+}
 
-- TypeScript seismic viewer: colorized terminal impact map and a standalone
-  animated SVG seismograph rendered from the JSON report.
-- Viewer exit codes mirror the Go CLI (0/1/2) so it can double as a CI gate.
+// diffResponses classifies response status/type differences.
+func (d *Diff) diffResponses(oe, ne contract.Endpoint) {
+	for code, oref := range oe.Responses {
+		nref, ok := ne.Responses[code]
+		if !ok {
+			d.add(Change{
+				Code:      "response.removed",
+				Category:  Breaking,
+				Severity:  Major.String(),
+				Location:  ne.ID + "#" + code,
+				Endpoint:  ne.ID,
+				Detail:    fmt.Sprintf("response %s removed", code),
+				Migration: fmt.Sprintf("Stop relying on the %s response; handle the remaining status codes.", code),
+			})
+			continue
+		}
+		if oref != nref {
+			d.add(Change{
+				Code:      "response.type.changed",
+				Category:  Breaking,
+				Severity:  Major.String(),
+				Location:  ne.ID + "#" + code,
+				Endpoint:  ne.ID,
+				Detail:    fmt.Sprintf("response %s body type changed %q -> %q", code, oref, nref),
+				Migration: "Update response parsing to the new body type.",
+			})
+		}
+	}
+	for code, nref := range ne.Responses {
+		if _, ok := oe.Responses[code]; !ok {
+			d.add(Change{
+				Code:      "response.added",
+				Category:  Additive,
+				Severity:  Info.String(),
+				Location:  ne.ID + "#" + code,
+				Endpoint:  ne.ID,
+				Detail:    fmt.Sprintf("response %s (%s) added", code, nref),
+				Migration: "Optionally handle the new status code.",
+			})
+		}
+	}
+}
 
-## [0.6.0] - 2023-09-21
+// diffTypes classifies type- and field-level differences.
+func (d *Diff) diffTypes(oldC, newC *contract.Contract) {
+	for _, name := range oldC.SortedTypeNames() {
+		ot := oldC.Types[name]
+		nt, ok := newC.Types[name]
+		if !ok {
+			d.add(Change{
+				Code:      "type.removed",
+				Category:  Breaking,
+				Severity:  Major.String(),
+				Location:  name,
+				Detail:    fmt.Sprintf("type %s removed", name),
+				Migration: "Remove references to this type; it no longer exists.",
+			})
+			continue
+		}
+		d.diffTypePair(ot, nt)
+	}
+	for _, name := range newC.SortedTypeNames() {
+		if _, ok := oldC.Types[name]; !ok {
+			d.add(Change{
+				Code:      "type.added",
+				Category:  Additive,
+				Severity:  Info.String(),
+				Location:  name,
+				Detail:    fmt.Sprintf("type %s added", name),
+				Migration: "New type available; adopt when needed.",
+			})
+		}
+	}
+}
 
-### Added
+// diffTypePair classifies differences within a correlated type.
+func (d *Diff) diffTypePair(ot, nt contract.Type) {
+	name := nt.Name
+	if ot.Kind != nt.Kind {
+		d.add(Change{
+			Code:      "type.kind.changed",
+			Category:  Breaking,
+			Severity:  Critical.String(),
+			Location:  name,
+			Detail:    fmt.Sprintf("type %s kind changed %s -> %s", name, ot.Kind, nt.Kind),
+			Migration: "This type's fundamental shape changed; rewrite all usages.",
+		})
+	}
+	if removed := removedEnum(ot.Enum, nt.Enum); len(removed) > 0 {
+		d.add(Change{
+			Code:      "type.enum.removed",
+			Category:  Breaking,
+			Severity:  Major.String(),
+			Location:  name,
+			Detail:    fmt.Sprintf("type %s dropped enum values %s", name, strings.Join(removed, ",")),
+			Migration: "Handle the removed enum values as invalid; they will no longer be produced.",
+		})
+	}
+	if added := removedEnum(nt.Enum, ot.Enum); len(added) > 0 {
+		d.add(Change{
+			Code:      "type.enum.added",
+			Category:  Behavioral,
+			Severity:  Minor.String(),
+			Location:  name,
+			Detail:    fmt.Sprintf("type %s gained enum values %s", name, strings.Join(added, ",")),
+			Migration: "Ensure consumers tolerate the new enum values.",
+		})
+	}
+	for fname, of := range ot.Fields {
+		path := name + "." + fname
+		nf, ok := nt.Fields[fname]
+		if !ok {
+			d.add(Change{
+				Code:      "field.removed",
+				Category:  Breaking,
+				Severity:  Major.String(),
+				Location:  path,
+				FieldPath: path,
+				Detail:    fmt.Sprintf("field %s removed", path),
+				Migration: fmt.Sprintf("Stop reading %s; it is no longer present.", path),
+			})
+			continue
+		}
+		d.diffFieldPair(path, of, nf)
+	}
+	for fname, nf := range nt.Fields {
+		if _, ok := ot.Fields[fname]; ok {
+			continue
+		}
+		path := name + "." + fname
+		cat, sev := Additive, Info
+		mig := "New optional field; read it when useful."
+		if nf.Required {
+			cat, sev = Breaking, Major
+			mig = fmt.Sprintf("A required field %s was added; producers must populate it.", path)
+		}
+		d.add(Change{
+			Code:      "field.added",
+			Category:  cat,
+			Severity:  sev.String(),
+			Location:  path,
+			FieldPath: path,
+			Detail:    fmt.Sprintf("field %s added (required=%v)", path, nf.Required),
+			Migration: mig,
+		})
+	}
+}
 
-- Seismic magnitude scoring on a compressed 0-10 scale with plain-language
-  verdicts (`stable`, `tremor`, `shaken`, `rupture`).
-- CI exit-code mapping: 0 stable, 1 shaken (behavioral), 2 rupture (breaking),
-  3 usage/IO error.
+// diffFieldPair classifies differences within a correlated field.
+func (d *Diff) diffFieldPair(path string, of, nf contract.Field) {
+	if of.TypeRef != nf.TypeRef {
+		d.add(Change{
+			Code:      "field.type.changed",
+			Category:  Breaking,
+			Severity:  Major.String(),
+			Location:  path,
+			FieldPath: path,
+			Detail:    fmt.Sprintf("field %s type changed %q -> %q", path, of.TypeRef, nf.TypeRef),
+			Migration: "Update the field's parsed type to match.",
+		})
+	}
+	if of.Array != nf.Array {
+		d.add(Change{
+			Code:      "field.arity.changed",
+			Category:  Breaking,
+			Severity:  Major.String(),
+			Location:  path,
+			FieldPath: path,
+			Detail:    fmt.Sprintf("field %s arity changed array %v -> %v", path, of.Array, nf.Array),
+			Migration: "Switch between scalar and array handling for this field.",
+		})
+	}
+	if !of.Required && nf.Required {
+		d.add(Change{
+			Code:      "field.required.added",
+			Category:  Breaking,
+			Severity:  Major.String(),
+			Location:  path,
+			FieldPath: path,
+			Detail:    fmt.Sprintf("field %s became required", path),
+			Migration: fmt.Sprintf("Always populate %s; it is now mandatory.", path),
+		})
+	}
+	if of.Required && !nf.Required {
+		d.add(Change{
+			Code:      "field.required.relaxed",
+			Category:  Behavioral,
+			Severity:  Minor.String(),
+			Location:  path,
+			FieldPath: path,
+			Detail:    fmt.Sprintf("field %s became optional", path),
+			Migration: fmt.Sprintf("Handle %s being absent; it may be omitted.", path),
+		})
+	}
+	if !of.Nullable && nf.Nullable {
+		d.add(Change{
+			Code:      "field.nullable.added",
+			Category:  Behavioral,
+			Severity:  Major.String(),
+			Location:  path,
+			FieldPath: path,
+			Detail:    fmt.Sprintf("field %s became nullable", path),
+			Migration: fmt.Sprintf("Guard against null values for %s.", path),
+		})
+	}
+	if of.Nullable && !nf.Nullable {
+		d.add(Change{
+			Code:      "field.nullable.removed",
+			Category:  Additive,
+			Severity:  Info.String(),
+			Location:  path,
+			FieldPath: path,
+			Detail:    fmt.Sprintf("field %s is no longer nullable", path),
+			Migration: "No action required; the field is guaranteed non-null.",
+		})
+	}
+	if !of.Deprecated && nf.Deprecated {
+		d.add(Change{
+			Code:      "field.deprecated",
+			Category:  Behavioral,
+			Severity:  Minor.String(),
+			Location:  path,
+			FieldPath: path,
+			Detail:    fmt.Sprintf("field %s marked deprecated", path),
+			Migration: fmt.Sprintf("Plan to stop using %s; it may be removed later.", path),
+		})
+	}
+}
 
-## [0.5.0] - 2022-10-12
+// removedEnum returns values present in a but absent from b, sorted.
+func removedEnum(a, b []string) []string {
+	set := map[string]bool{}
+	for _, v := range b {
+		set[v] = true
+	}
+	var out []string
+	for _, v := range a {
+		if !set[v] {
+			out = append(out, v)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
 
-### Added
+// sortChanges orders changes deterministically: by severity (desc), then
+// category, then code, then location.
+func (d *Diff) sortChanges() {
+	sort.SliceStable(d.Changes, func(i, j int) bool {
+		a, b := d.Changes[i], d.Changes[j]
+		if ra, rb := severityRank(a.Severity), severityRank(b.Severity); ra != rb {
+			return ra > rb
+		}
+		if a.Category != b.Category {
+			return a.Category < b.Category
+		}
+		if a.Code != b.Code {
+			return a.Code < b.Code
+		}
+		return a.Location < b.Location
+	})
+}
 
-- Consumer blast-radius join: every change attributed to the named consumers
-  that actually depend on the affected element, weighted by criticality.
-
-### Changed
-
-- Field tremors join on `readsFields`/`writesFields`; endpoint tremors join on
-  callers; new required parameters shake every caller of the endpoint.
-
-## [0.4.0] - 2021-12-09
-
-### Added
-
-- Full classification engine across endpoints, parameters, responses, reusable
-  types, fields, enums, nullability, arity, required-ness, deprecation and
-  idempotency - each mapped to breaking / additive / behavioral.
-- Thirty-plus documented rule codes in `docs/CONTRACT.md`.
-
-## [0.3.0] - 2020-11-05
-
-### Added
-
-- Consumer usage manifests with criticality weighting (`high`/`medium`/`low`).
-- Manifest format kept coarse enough to publish without exposing the source
-  tree, precise enough to compute a real blast radius.
-
-## [0.2.0] - 2019-08-22
-
-### Changed
-
-- Strict decoding everywhere: unknown keys are hard errors so typos fail
-  loudly instead of silently disarming a check.
-
-### Fixed
-
-- Endpoint correlation now keyed on a stable `id` - renaming a path is
-  reported as a mutation, not a delete-plus-add.
-
-## [0.1.0] - 2018-04-19
-
-### Added
-
-- First seismograph: the documented JSON contract loader and the version diff
-  engine with a plain-text report renderer.
-- Initial example contracts for the `orders-api` fault.
-
-[Unreleased]: https://github.com/michaeldelali/ContractFault/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v1.0.0
-[0.8.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.8.0
-[0.7.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.7.0
-[0.6.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.6.0
-[0.5.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.5.0
-[0.4.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.4.0
-[0.3.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.3.0
-[0.2.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.2.0
-[0.1.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.1.0
-
-// draft note 712
+// Counts summarizes changes by category.
+func (d *Diff) Counts() map[Category]int {
+	out := map[Category]int{Breaking: 0, Additive: 0, Behavioral: 0}
+	for _, c := range d.Changes {
+		out[c.Category]++
+	}
+	return out
+}
