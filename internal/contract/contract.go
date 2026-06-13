@@ -1,116 +1,213 @@
-# Changelog
+// Package contract defines the documented JSON contract format that
+// contractfault ingests and the loaders that parse it from disk.
+//
+// The format is intentionally OpenAPI-like but self-contained: it models
+// endpoints (methods + paths + params + responses) and reusable named types
+// (objects with fields). The goal is to be practical to author by hand while
+// still expressing the properties that matter for consumer-impact analysis:
+// required-ness, nullability, enum membership, deprecation and status codes.
+package contract
 
-All notable changes to ContractFault are documented here. The format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres
-to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"sort"
+	"strings"
+)
 
-## [Unreleased]
+// Contract is the top-level document. A contract is a versioned snapshot of an
+// API surface: a set of named types and a set of endpoints.
+type Contract struct {
+	// Service is the logical name of the API (e.g. "orders-api").
+	Service string `json:"service"`
+	// Version is a human-readable semantic version string ("1.4.0").
+	Version string `json:"version"`
+	// Types is the catalogue of reusable object types keyed by type name.
+	Types map[string]Type `json:"types"`
+	// Endpoints is the list of operations exposed by the service.
+	Endpoints []Endpoint `json:"endpoints"`
+}
 
-### Added
+// Type is a reusable object type: a named bag of fields plus optional enum
+// value constraints for scalar types.
+type Type struct {
+	// Name is the type identifier, mirrored from the map key for convenience.
+	Name string `json:"name,omitempty"`
+	// Kind is one of "object", "string", "integer", "number", "boolean".
+	// Object types carry Fields; scalar types may carry Enum.
+	Kind string `json:"kind"`
+	// Fields are the members of an object type keyed by field name.
+	Fields map[string]Field `json:"fields,omitempty"`
+	// Enum lists the permitted values for a scalar type. An empty slice means
+	// the scalar is unconstrained.
+	Enum []string `json:"enum,omitempty"`
+	// Deprecated marks the whole type as scheduled for removal.
+	Deprecated bool `json:"deprecated,omitempty"`
+}
 
-- (planned) monorepo mode: multi-service contracts in a single combined report.
-- (planned) OpenAPI import shim for existing documents.
+// Field is a member of an object type.
+type Field struct {
+	// TypeRef names the type of the field. It is either a builtin scalar
+	// ("string", "integer", "number", "boolean") or the name of a Type.
+	TypeRef string `json:"type"`
+	// Required indicates the field must always be present in a payload.
+	Required bool `json:"required,omitempty"`
+	// Nullable indicates the field may carry an explicit null value.
+	Nullable bool `json:"nullable,omitempty"`
+	// Array indicates the field is a homogeneous list of TypeRef values.
+	Array bool `json:"array,omitempty"`
+	// Deprecated marks the field as scheduled for removal.
+	Deprecated bool `json:"deprecated,omitempty"`
+	// Doc is a short human description used in migration hints.
+	Doc string `json:"doc,omitempty"`
+}
 
-## [1.0.0] - 2026-08-09
+// Endpoint is a single API operation.
+type Endpoint struct {
+	// ID is a stable operation identifier ("getOrder"). It is the primary key
+	// used to correlate an endpoint across versions.
+	ID string `json:"id"`
+	// Method is the HTTP verb, upper-cased on load.
+	Method string `json:"method"`
+	// Path is the templated URL path ("/orders/{id}").
+	Path string `json:"path"`
+	// Params are the request parameters (path, query, header).
+	Params []Param `json:"params,omitempty"`
+	// RequestType names the request body Type, empty for bodiless operations.
+	RequestType string `json:"requestType,omitempty"`
+	// Responses maps status code (as string) to the response body Type name.
+	Responses map[string]string `json:"responses,omitempty"`
+	// Deprecated marks the operation as scheduled for removal.
+	Deprecated bool `json:"deprecated,omitempty"`
+	// Idempotent documents whether repeated calls are safe; a change here is a
+	// behavioral change even though the shape is identical.
+	Idempotent bool `json:"idempotent,omitempty"`
+}
 
-### Added
+// Param is a request parameter.
+type Param struct {
+	// Name is the parameter name.
+	Name string `json:"name"`
+	// In is the location: "path", "query" or "header".
+	In string `json:"in"`
+	// TypeRef is the scalar type of the parameter value.
+	TypeRef string `json:"type"`
+	// Required indicates the parameter must be supplied.
+	Required bool `json:"required,omitempty"`
+	// Enum constrains the permitted values.
+	Enum []string `json:"enum,omitempty"`
+}
 
-- `-fail-on-behavioral` pipeline flag: treat behavioral-only shifts as a hard
-  failure (exit 2) when the SLA demands it.
-- `-quiet` mode printing only the one-line verdict summary.
+// Key returns the correlation key for a parameter within an endpoint.
+func (p Param) Key() string { return p.In + ":" + p.Name }
 
-### Changed
+// EndpointByID indexes the contract's endpoints by their stable ID.
+func (c *Contract) EndpointByID() map[string]Endpoint {
+	out := make(map[string]Endpoint, len(c.Endpoints))
+	for _, e := range c.Endpoints {
+		out[e.ID] = e
+	}
+	return out
+}
 
-- Stabilized the report schema at `contractfault/v1` for 1.x.
+// Validate checks structural invariants and returns a descriptive error when
+// the document is internally inconsistent. It is deliberately strict so that a
+// malformed contract fails loudly rather than producing a misleading report.
+func (c *Contract) Validate() error {
+	if strings.TrimSpace(c.Service) == "" {
+		return fmt.Errorf("contract: service name is empty")
+	}
+	if strings.TrimSpace(c.Version) == "" {
+		return fmt.Errorf("contract: version is empty")
+	}
+	seen := make(map[string]bool)
+	for _, e := range c.Endpoints {
+		if e.ID == "" {
+			return fmt.Errorf("contract: endpoint with empty id (path %q)", e.Path)
+		}
+		if seen[e.ID] {
+			return fmt.Errorf("contract: duplicate endpoint id %q", e.ID)
+		}
+		seen[e.ID] = true
+		if e.Method == "" {
+			return fmt.Errorf("contract: endpoint %q has empty method", e.ID)
+		}
+		if e.RequestType != "" && !c.knownType(e.RequestType) {
+			return fmt.Errorf("contract: endpoint %q references unknown request type %q", e.ID, e.RequestType)
+		}
+		for code, ref := range e.Responses {
+			if ref != "" && !c.knownType(ref) {
+				return fmt.Errorf("contract: endpoint %q response %s references unknown type %q", e.ID, code, ref)
+			}
+		}
+	}
+	for name, t := range c.Types {
+		for fname, f := range t.Fields {
+			if f.TypeRef != "" && !c.knownType(f.TypeRef) {
+				return fmt.Errorf("contract: type %q field %q references unknown type %q", name, fname, f.TypeRef)
+			}
+		}
+	}
+	return nil
+}
 
-## [0.8.0] - 2025-11-18
+func (c *Contract) knownType(ref string) bool {
+	switch ref {
+	case "string", "integer", "number", "boolean", "object":
+		return true
+	}
+	_, ok := c.Types[ref]
+	return ok
+}
 
-### Changed
+// SortedTypeNames returns type names in deterministic order.
+func (c *Contract) SortedTypeNames() []string {
+	names := make([]string, 0, len(c.Types))
+	for n := range c.Types {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	return names
+}
 
-- Determinism hardening: every collection sorted before emission; identical
-  inputs now produce byte-identical JSON reports (verified in tests).
-- Text renderer magnitude meter bounded and stable across terminals.
+// Load reads and parses a contract from a JSON file at path, normalizes it and
+// validates it. Any error is wrapped with the source path for diagnosability.
+func Load(path string) (*Contract, error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("contract: reading %s: %w", path, err)
+	}
+	return Parse(raw, path)
+}
 
-### Fixed
+// Parse decodes a contract from raw JSON bytes. The origin string is only used
+// to enrich error messages.
+func Parse(raw []byte, origin string) (*Contract, error) {
+	var c Contract
+	dec := json.NewDecoder(strings.NewReader(string(raw)))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&c); err != nil {
+		return nil, fmt.Errorf("contract: decoding %s: %w", origin, err)
+	}
+	c.normalize()
+	if err := c.Validate(); err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
 
-- Consumer manifests with unknown keys now fail loudly instead of silently
-  disarming the blast-radius join.
-
-## [0.7.0] - 2024-11-14
-
-### Added
-
-- TypeScript seismic viewer: colorized terminal impact map and a standalone
-  animated SVG seismograph rendered from the JSON report.
-- Viewer exit codes mirror the Go CLI (0/1/2) so it can double as a CI gate.
-
-## [0.6.0] - 2023-09-21
-
-### Added
-
-- Seismic magnitude scoring on a compressed 0-10 scale with plain-language
-  verdicts (`stable`, `tremor`, `shaken`, `rupture`).
-- CI exit-code mapping: 0 stable, 1 shaken (behavioral), 2 rupture (breaking),
-  3 usage/IO error.
-
-## [0.5.0] - 2022-10-12
-
-### Added
-
-- Consumer blast-radius join: every change attributed to the named consumers
-  that actually depend on the affected element, weighted by criticality.
-
-### Changed
-
-- Field tremors join on `readsFields`/`writesFields`; endpoint tremors join on
-  callers; new required parameters shake every caller of the endpoint.
-
-## [0.4.0] - 2021-12-09
-
-### Added
-
-- Full classification engine across endpoints, parameters, responses, reusable
-  types, fields, enums, nullability, arity, required-ness, deprecation and
-  idempotency - each mapped to breaking / additive / behavioral.
-- Thirty-plus documented rule codes in `docs/CONTRACT.md`.
-
-## [0.3.0] - 2020-11-05
-
-### Added
-
-- Consumer usage manifests with criticality weighting (`high`/`medium`/`low`).
-- Manifest format kept coarse enough to publish without exposing the source
-  tree, precise enough to compute a real blast radius.
-
-## [0.2.0] - 2019-08-22
-
-### Changed
-
-- Strict decoding everywhere: unknown keys are hard errors so typos fail
-  loudly instead of silently disarming a check.
-
-### Fixed
-
-- Endpoint correlation now keyed on a stable `id` - renaming a path is
-  reported as a mutation, not a delete-plus-add.
-
-## [0.1.0] - 2018-04-19
-
-### Added
-
-- First seismograph: the documented JSON contract loader and the version diff
-  engine with a plain-text report renderer.
-- Initial example contracts for the `orders-api` fault.
-
-[Unreleased]: https://github.com/michaeldelali/ContractFault/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v1.0.0
-[0.8.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.8.0
-[0.7.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.7.0
-[0.6.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.6.0
-[0.5.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.5.0
-[0.4.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.4.0
-[0.3.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.3.0
-[0.2.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.2.0
-[0.1.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.1.0
-
-// draft note 717
+// normalize mirrors map keys onto struct fields and upper-cases methods so the
+// rest of the pipeline can rely on canonical values.
+func (c *Contract) normalize() {
+	if c.Types == nil {
+		c.Types = map[string]Type{}
+	}
+	for name, t := range c.Types {
+		t.Name = name
+		c.Types[name] = t
+	}
+	for i := range c.Endpoints {
+		c.Endpoints[i].Method = strings.ToUpper(c.Endpoints[i].Method)
+	}
+}
