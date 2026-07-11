@@ -1,116 +1,83 @@
-# Changelog
+/**
+ * Type definitions mirroring the JSON report emitted by the contractfault Go
+ * CLI (schema tag "contractfault/v1"). Keeping these in one place lets the
+ * viewer guard on the schema field and fail loudly on shape drift.
+ */
 
-All notable changes to ContractFault are documented here. The format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres
-to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+export type Category = "breaking" | "additive" | "behavioral";
+export type Severity = "critical" | "major" | "minor" | "info";
+export type Verdict = "stable" | "tremor" | "shaken" | "rupture";
 
-## [Unreleased]
+export interface Summary {
+  breaking: number;
+  additive: number;
+  behavioral: number;
+  affectedConsumers: number;
+  magnitude: number;
+  verdict: Verdict;
+}
 
-### Added
+export interface ChangeImpact {
+  code: string;
+  category: Category;
+  severity: Severity;
+  location: string;
+  endpoint?: string;
+  fieldPath?: string;
+  paramKey?: string;
+  detail: string;
+  migration: string;
+  consumers: string[];
+}
 
-- (planned) monorepo mode: multi-service contracts in a single combined report.
-- (planned) OpenAPI import shim for existing documents.
+export interface ConsumerImpact {
+  name: string;
+  team: string;
+  criticality: string;
+  breaking: number;
+  additive: number;
+  behavioral: number;
+  codes: string[];
+  score: number;
+}
 
-## [1.0.0] - 2026-08-09
+export interface Report {
+  schema: string;
+  service: string;
+  fromVersion: string;
+  toVersion: string;
+  summary: Summary;
+  changes: ChangeImpact[];
+  consumers: ConsumerImpact[];
+}
 
-### Added
+export const SCHEMA_ID = "contractfault/v1";
 
-- `-fail-on-behavioral` pipeline flag: treat behavioral-only shifts as a hard
-  failure (exit 2) when the SLA demands it.
-- `-quiet` mode printing only the one-line verdict summary.
-
-### Changed
-
-- Stabilized the report schema at `contractfault/v1` for 1.x.
-
-## [0.8.0] - 2025-11-18
-
-### Changed
-
-- Determinism hardening: every collection sorted before emission; identical
-  inputs now produce byte-identical JSON reports (verified in tests).
-- Text renderer magnitude meter bounded and stable across terminals.
-
-### Fixed
-
-- Consumer manifests with unknown keys now fail loudly instead of silently
-  disarming the blast-radius join.
-
-## [0.7.0] - 2024-11-14
-
-### Added
-
-- TypeScript seismic viewer: colorized terminal impact map and a standalone
-  animated SVG seismograph rendered from the JSON report.
-- Viewer exit codes mirror the Go CLI (0/1/2) so it can double as a CI gate.
-
-## [0.6.0] - 2023-09-21
-
-### Added
-
-- Seismic magnitude scoring on a compressed 0-10 scale with plain-language
-  verdicts (`stable`, `tremor`, `shaken`, `rupture`).
-- CI exit-code mapping: 0 stable, 1 shaken (behavioral), 2 rupture (breaking),
-  3 usage/IO error.
-
-## [0.5.0] - 2022-10-12
-
-### Added
-
-- Consumer blast-radius join: every change attributed to the named consumers
-  that actually depend on the affected element, weighted by criticality.
-
-### Changed
-
-- Field tremors join on `readsFields`/`writesFields`; endpoint tremors join on
-  callers; new required parameters shake every caller of the endpoint.
-
-## [0.4.0] - 2021-12-09
-
-### Added
-
-- Full classification engine across endpoints, parameters, responses, reusable
-  types, fields, enums, nullability, arity, required-ness, deprecation and
-  idempotency - each mapped to breaking / additive / behavioral.
-- Thirty-plus documented rule codes in `docs/CONTRACT.md`.
-
-## [0.3.0] - 2020-11-05
-
-### Added
-
-- Consumer usage manifests with criticality weighting (`high`/`medium`/`low`).
-- Manifest format kept coarse enough to publish without exposing the source
-  tree, precise enough to compute a real blast radius.
-
-## [0.2.0] - 2019-08-22
-
-### Changed
-
-- Strict decoding everywhere: unknown keys are hard errors so typos fail
-  loudly instead of silently disarming a check.
-
-### Fixed
-
-- Endpoint correlation now keyed on a stable `id` - renaming a path is
-  reported as a mutation, not a delete-plus-add.
-
-## [0.1.0] - 2018-04-19
-
-### Added
-
-- First seismograph: the documented JSON contract loader and the version diff
-  engine with a plain-text report renderer.
-- Initial example contracts for the `orders-api` fault.
-
-[Unreleased]: https://github.com/michaeldelali/ContractFault/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v1.0.0
-[0.8.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.8.0
-[0.7.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.7.0
-[0.6.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.6.0
-[0.5.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.5.0
-[0.4.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.4.0
-[0.3.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.3.0
-[0.2.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.2.0
-[0.1.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.1.0
-
-// draft note 748
+/**
+ * parseReport validates that an unknown JSON value conforms to the expected
+ * report shape and schema, throwing a descriptive error otherwise. It performs
+ * structural checks rather than trusting the input, so malformed reports are
+ * rejected at the boundary instead of causing confusing failures later.
+ */
+export function parseReport(value: unknown): Report {
+  if (typeof value !== "object" || value === null) {
+    throw new Error("report: expected a JSON object");
+  }
+  const r = value as Record<string, unknown>;
+  if (r.schema !== SCHEMA_ID) {
+    throw new Error(`report: unsupported schema ${String(r.schema)} (want ${SCHEMA_ID})`);
+  }
+  if (typeof r.service !== "string") {
+    throw new Error("report: missing service");
+  }
+  if (typeof r.summary !== "object" || r.summary === null) {
+    throw new Error("report: missing summary");
+  }
+  if (!Array.isArray(r.changes)) {
+    throw new Error("report: changes must be an array");
+  }
+  if (!Array.isArray(r.consumers)) {
+    throw new Error("report: consumers must be an array");
+  }
+  return value as Report;
+}
