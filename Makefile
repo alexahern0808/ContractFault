@@ -1,116 +1,65 @@
-# Changelog
+# contractfault — build, test and demo orchestration.
+#
+# The Makefile drives both halves of the project: the Go analyzer CLI and the
+# TypeScript seismic viewer. Targets are deliberately small and composable so
+# CI and humans run the same commands.
 
-All notable changes to ContractFault are documented here. The format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres
-to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+GO        ?= go
+NPM       ?= npm
+BIN       ?= bin/contractfault
+VIEWER    ?= viewer
+EXAMPLES  ?= examples
+OLD       ?= $(EXAMPLES)/contracts/orders-v1.json
+NEW       ?= $(EXAMPLES)/contracts/orders-v2.json
+CONSUMERS ?= $(EXAMPLES)/consumers/*.json
+REPORT    ?= $(EXAMPLES)/report.json
 
-## [Unreleased]
+.PHONY: all build build-go build-viewer test test-go test-viewer \
+        report demo svg fmt vet clean tidy ci
 
-### Added
+all: build test
 
-- (planned) monorepo mode: multi-service contracts in a single combined report.
-- (planned) OpenAPI import shim for existing documents.
+## build: compile the Go CLI and the TypeScript viewer.
+build: build-go build-viewer
 
-## [1.0.0] - 2026-08-09
+build-go:
+	$(GO) build -o $(BIN) ./cmd/contractfault
 
-### Added
+build-viewer:
+	cd $(VIEWER) && $(NPM) install --no-audit --no-fund && $(NPM) run build
 
-- `-fail-on-behavioral` pipeline flag: treat behavioral-only shifts as a hard
-  failure (exit 2) when the SLA demands it.
-- `-quiet` mode printing only the one-line verdict summary.
+## test: run all Go and TypeScript tests.
+test: test-go test-viewer
 
-### Changed
+test-go:
+	$(GO) test ./...
 
-- Stabilized the report schema at `contractfault/v1` for 1.x.
+test-viewer:
+	cd $(VIEWER) && $(NPM) test
 
-## [0.8.0] - 2025-11-18
+## report: analyze the example contracts and emit deterministic JSON.
+report: build-go
+	$(BIN) -old $(OLD) -new $(NEW) -consumers "$(CONSUMERS)" -format json -out $(REPORT)
 
-### Changed
+## demo: full pipeline — analyze then render the seismic map + SVG.
+demo: report build-viewer svg
+	cd $(VIEWER) && node dist/cli.js ../$(REPORT)
 
-- Determinism hardening: every collection sorted before emission; identical
-  inputs now produce byte-identical JSON reports (verified in tests).
-- Text renderer magnitude meter bounded and stable across terminals.
+## svg: regenerate the impact seismograph from the current report.
+svg: build-viewer report
+	cd $(VIEWER) && node dist/cli.js ../$(REPORT) --svg ../docs/assets/impact-seismograph.svg --no-color
 
-### Fixed
+fmt:
+	$(GO) fmt ./...
 
-- Consumer manifests with unknown keys now fail loudly instead of silently
-  disarming the blast-radius join.
+vet:
+	$(GO) vet ./...
 
-## [0.7.0] - 2024-11-14
+tidy:
+	$(GO) mod tidy
 
-### Added
+## ci: the exact sequence run in continuous integration.
+ci: vet test
 
-- TypeScript seismic viewer: colorized terminal impact map and a standalone
-  animated SVG seismograph rendered from the JSON report.
-- Viewer exit codes mirror the Go CLI (0/1/2) so it can double as a CI gate.
-
-## [0.6.0] - 2023-09-21
-
-### Added
-
-- Seismic magnitude scoring on a compressed 0-10 scale with plain-language
-  verdicts (`stable`, `tremor`, `shaken`, `rupture`).
-- CI exit-code mapping: 0 stable, 1 shaken (behavioral), 2 rupture (breaking),
-  3 usage/IO error.
-
-## [0.5.0] - 2022-10-12
-
-### Added
-
-- Consumer blast-radius join: every change attributed to the named consumers
-  that actually depend on the affected element, weighted by criticality.
-
-### Changed
-
-- Field tremors join on `readsFields`/`writesFields`; endpoint tremors join on
-  callers; new required parameters shake every caller of the endpoint.
-
-## [0.4.0] - 2021-12-09
-
-### Added
-
-- Full classification engine across endpoints, parameters, responses, reusable
-  types, fields, enums, nullability, arity, required-ness, deprecation and
-  idempotency - each mapped to breaking / additive / behavioral.
-- Thirty-plus documented rule codes in `docs/CONTRACT.md`.
-
-## [0.3.0] - 2020-11-05
-
-### Added
-
-- Consumer usage manifests with criticality weighting (`high`/`medium`/`low`).
-- Manifest format kept coarse enough to publish without exposing the source
-  tree, precise enough to compute a real blast radius.
-
-## [0.2.0] - 2019-08-22
-
-### Changed
-
-- Strict decoding everywhere: unknown keys are hard errors so typos fail
-  loudly instead of silently disarming a check.
-
-### Fixed
-
-- Endpoint correlation now keyed on a stable `id` - renaming a path is
-  reported as a mutation, not a delete-plus-add.
-
-## [0.1.0] - 2018-04-19
-
-### Added
-
-- First seismograph: the documented JSON contract loader and the version diff
-  engine with a plain-text report renderer.
-- Initial example contracts for the `orders-api` fault.
-
-[Unreleased]: https://github.com/michaeldelali/ContractFault/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v1.0.0
-[0.8.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.8.0
-[0.7.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.7.0
-[0.6.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.6.0
-[0.5.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.5.0
-[0.4.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.4.0
-[0.3.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.3.0
-[0.2.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.2.0
-[0.1.0]: https://github.com/michaeldelali/ContractFault/releases/tag/v0.1.0
-
-// draft note 765
+clean:
+	rm -rf bin $(VIEWER)/dist $(VIEWER)/node_modules
